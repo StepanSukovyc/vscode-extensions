@@ -1,0 +1,96 @@
+{
+  "name": "clickup-task-workspace",
+  "displayName": "ClickUp Task Workspace",
+  "description": "Stahování ClickUp úkolů a jejich podkladů do lokální pracovní složky.",
+  "version": "0.1.0",
+  "icon": "images/icon.png",
+  "publisher": "stepansukovyc",
+  "author": "Mgr. Stepan Sukovyc",
+  "license": "MIT",
+  "repository": "https://github.com/StepanSukovyc/vscode-extensions.git",
+  "bugs": "https://github.com/StepanSukovyc/vscode-extensions/issues",
+  "homepage": "https://github.com/StepanSukovyc/vscode-extensions/tree/main/clickup-task-workspace",
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "vscode": "^1.96.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./dist/extension.js",
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false
+    }
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "clickup-task-workspace.updateTask",
+        "title": "Aktualizovat ClickUp úkol",
+        "category": "ClickUp Task Workspace"
+      },
+      {
+        "command": "clickup-task-workspace.setApiToken",
+        "title": "Nastavit ClickUp API token",
+        "category": "ClickUp Task Workspace"
+      },
+      {
+        "command": "clickup-task-workspace.clearApiToken",
+        "title": "Odstranit ClickUp API token",
+        "category": "ClickUp Task Workspace"
+      }
+    ],
+    "configuration": {
+      "title": "ClickUp Task Workspace",
+      "properties": {
+        "clickupTaskWorkspace.workspaceId": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Povinné ID ClickUp Workspace. Při zadání celé URL úkolu se pro dané spuštění použije Workspace ID z URL."
+        },
+        "clickupTaskWorkspace.tasksFolder": {
+          "type": "string",
+          "default": "tasks",
+          "markdownDescription": "Cílová složka úkolů. Relativní cesta se vyhodnotí vůči workspace aktivního souboru; lze zadat i absolutní cestu."
+        },
+        "clickupTaskWorkspace.largeAttachmentWarningMb": {
+          "type": "number",
+          "default": 100,
+          "minimum": 1,
+          "markdownDescription": "Velikost přílohy v MB, od které se zobrazí varování. Nejde o limit stahování."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "clean": "node ./scripts/esbuild.mjs --clean",
+    "check-types": "tsc --noEmit",
+    "compile": "pnpm run check-types && node ./scripts/esbuild.mjs",
+    "watch": "node ./scripts/esbuild.mjs --watch",
+    "lint": "eslint src",
+    "test": "vitest run",
+    "check": "pnpm run check-types && pnpm run lint && pnpm run test",
+    "vscode:prepublish": "pnpm run check-types && node ./scripts/esbuild.mjs --production",
+    "package": "pnpm run check && vsce package --no-dependencies --allow-missing-repository --out versions/clickup-task-workspace.vsix"
+  },
+  "dependencies": {
+    "mdast-util-from-markdown": "^2.0.2",
+    "mdast-util-to-markdown": "^2.1.2",
+    "unist-util-visit": "^5.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@types/mdast": "^4.0.4",
+    "@types/node": "^20.17.0",
+    "@types/vscode": "1.96.0",
+    "@typescript-eslint/eslint-plugin": "^8.17.0",
+    "@typescript-eslint/parser": "^8.17.0",
+    "@vscode/vsce": "^3.2.1",
+    "esbuild": "^0.24.2",
+    "eslint": "^9.16.0",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.70.0",
+    "vitest": "^2.1.8"
+  }
+}

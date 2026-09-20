@@ -1,0 +1,52 @@
+{
+  "name": "json-text-normalizer",
+  "displayName": "JSON Text Normalizer",
+  "description": "Normalizuje JSON uložený v textových hodnotách na vnořené JSON objekty.",
+  "version": "0.1.0",
+  "publisher": "stepansukovyc",
+  "author": "Mgr. Stepan Sukovyc",
+  "license": "MIT",
+  "repository": "https://github.com/StepanSukovyc/vscode-extensions.git",
+  "bugs": "https://github.com/StepanSukovyc/vscode-extensions/issues",
+  "homepage": "https://github.com/StepanSukovyc/vscode-extensions/tree/main/json-text-normalizer",
+  "icon": "images/icon.png",
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "vscode": "^1.96.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "json-text-normalizer.normalizeJsonText",
+        "title": "Normalizovat JSON textové hodnoty",
+        "category": "JSON Text Normalizer"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "pnpm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "pnpm run compile && pnpm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test",
+    "package": "pnpm run compile && vsce package --no-dependencies --allow-missing-repository --out versions/json-text-normalizer.vsix"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.96.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "20.x",
+    "@typescript-eslint/eslint-plugin": "^8.17.0",
+    "@typescript-eslint/parser": "^8.17.0",
+    "eslint": "^9.16.0",
+    "typescript": "^5.7.2",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.4.1",
+    "@vscode/vsce": "^3.2.1"
+  }
+}

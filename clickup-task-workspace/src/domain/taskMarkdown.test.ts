@@ -1,0 +1,58 @@
+import { describe, expect, it } from 'vitest';
+import { buildTaskMarkdown, collectExternalImageUrls, rewriteImageUrls } from './taskMarkdown.js';
+
+describe('Markdown obrázky', () => {
+  it('najde inline i referenční obrázky a přepíše jen jejich URL', () => {
+    const markdown = [
+      '![Inline](https://example.com/a.png)',
+      '',
+      '![Reference][obr]',
+      '',
+      '[obr]: https://example.com/b.jpg',
+      '[odkaz]: https://example.com/stranka',
+    ].join('\n');
+
+    expect(collectExternalImageUrls(markdown)).toEqual(new Set([
+      'https://example.com/a.png',
+      'https://example.com/b.jpg',
+    ]));
+
+    const result = rewriteImageUrls(markdown, {
+      'https://example.com/a.png': 'a.png',
+      'https://example.com/b.jpg': 'b.jpg',
+    });
+    expect(result).toContain('![Inline](./a.png)');
+    expect(result).toContain('[obr]: ./b.jpg');
+    expect(result).toContain('[odkaz]: https://example.com/stranka');
+  });
+});
+
+describe('buildTaskMarkdown', () => {
+  it('zahrne čitelný obsah i kompletní JSON', () => {
+    const markdown = buildTaskMarkdown(
+      { id: 'abc', custom_id: 'TTS-1', name: 'Test', status: { status: 'todo' }, extra: 42 },
+      [{ id: 'c1', comment_text: 'Komentář' }],
+      'Popis',
+      ['image.png'],
+    );
+
+    expect(markdown).toContain('## Komentáře');
+    expect(markdown).toContain('Komentář');
+    expect(markdown).toContain('"extra": 42');
+    expect(markdown).toContain('[image.png](./image.png)');
+  });
+
+  it('odstraní redundantní úvodní nadpis Popis', () => {
+    const markdown = buildTaskMarkdown(
+      { id: 'abc', name: 'Test' },
+      [],
+      '### Popis\n\nObsah úkolu\n\n### Technický popis\n\nDetail',
+      [],
+    );
+
+    expect(markdown.match(/^## Popis$/gm)).toHaveLength(1);
+    expect(markdown).not.toContain('### Popis\n');
+    expect(markdown).toContain('Obsah úkolu');
+    expect(markdown).toContain('### Technický popis');
+  });
+});

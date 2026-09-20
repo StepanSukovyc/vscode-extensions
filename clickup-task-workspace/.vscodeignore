@@ -1,0 +1,13 @@
+.github/**
+.vscode/**
+scripts/**
+src/**
+.gitignore
+eslint.config.mjs
+tsconfig.json
+vitest.config.ts
+pnpm-lock.yaml
+node_modules/**
+coverage/**
+versions/**
+**/*.map
