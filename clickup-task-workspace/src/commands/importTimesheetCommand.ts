@@ -9,6 +9,7 @@ import {
   promptAndStoreClockifyApiToken,
 } from '../configuration.js';
 import { parseTaskInput } from '../domain/taskInput.js';
+import { formatImportPreview } from '../timesheet/importPreview.js';
 import { parseTimesheet } from '../timesheet/timesheetParser.js';
 import { planTimesheetImport, removeTimesheetLines, type ResolvedClockifyEntry } from '../timesheet/timesheetImport.js';
 
@@ -73,7 +74,12 @@ export async function importTimesheetCommand(context: vscode.ExtensionContext): 
           const existingEntries = await loadExistingEntries(clockifyClient, workspaceId, currentUser.id, parsedTimesheet.entries, abortController.signal);
           const importPlan = planTimesheetImport(parsedTimesheet, projects, tags, existingEntries);
 
-          if (!await confirmImport(importPlan.newEntries.length, importPlan.existingEntries.length, importPlan.removableLineIndexes.length, importPlan.invalidLines.length)) {
+          if (!await confirmImport(
+            importPlan.newEntries.length,
+            importPlan.existingEntries.length,
+            importPlan.removableLineIndexes.length,
+            importPlan.invalidLines,
+          )) {
             return undefined;
           }
 
@@ -181,9 +187,14 @@ function toCreateRequest(entry: ResolvedClockifyEntry): {
   };
 }
 
-async function confirmImport(created: number, existing: number, removed: number, errors: number): Promise<boolean> {
+async function confirmImport(
+  created: number,
+  existing: number,
+  removed: number,
+  invalidLines: Array<{ lineIndex: number; message: string; sourceLine: string }>,
+): Promise<boolean> {
   const choice = await vscode.window.showWarningMessage(
-    `Clockify: vytvořit ${created}, přeskočit existující ${existing}, odstranit řádky bez času ${removed}, chyby ${errors}.`,
+    formatImportPreview(created, existing, removed, invalidLines),
     { modal: true },
     'Importovat',
   );
