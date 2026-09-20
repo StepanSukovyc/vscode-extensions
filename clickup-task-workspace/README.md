@@ -125,8 +125,9 @@ Například:
 various activities: 815 - 830, 1830 - 1835 management: Různé (emaily, aktualizace nástrojů, plánování apod.)
 ```
 
-- Časy přijímají zápis `9`, `815`, `1830` nebo `2330`; páry lze oddělit čárkou i mezerou.
-- Interval `2330 - 30` končí následující kalendářní den.
+- Jedno- a dvouciferný čas označuje celou hodinu: `9` znamená `09:00` a `12` znamená `12:00`.
+- Tří- a čtyřciferný čas obsahuje hodiny i minuty: `915` znamená `09:15`, `1230` znamená `12:30` a `1830` znamená `18:30`.
+- Páry lze oddělit čárkou i mezerou. Konec nočního intervalu může zapsat pouze minuty: `2330 - 30` znamená `23:30–00:30` následující kalendářní den.
 - Časy jsou vyhodnoceny v `Europe/Prague`; neexistující nebo nejednoznačný čas při změně letního času je chyba.
 - Název projektu ani štítku nesmí obsahovat dvojtečku. Popis může obsahovat libovolný text včetně dalších dvojteček a URL.
 - Řádek bez časové dvojice se po potvrzení odstraní z ClickUp Markdownu.
