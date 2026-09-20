@@ -34,6 +34,24 @@ describe('parseTimesheet', () => {
     });
   });
 
+  it('interpretuje dvouciferný čas jako celou hodinu', () => {
+    const result = parseTimesheet('17/9/2026', 'various activities: 12 - 1230 lunch: **Oběd**');
+
+    expect(result.entries[0]).toMatchObject({
+      end: '2026-09-17T10:30:00.000Z',
+      start: '2026-09-17T10:00:00.000Z',
+    });
+  });
+
+  it('interpretuje jednociferný čas jako celou hodinu', () => {
+    const result = parseTimesheet('17/9/2026', 'various activities: 9 - 915 analysis: **Analýza požadavků**');
+
+    expect(result.entries[0]).toMatchObject({
+      end: '2026-09-17T07:15:00.000Z',
+      start: '2026-09-17T07:00:00.000Z',
+    });
+  });
+
   it('označí řádek bez časů k odstranění', () => {
     const result = parseTimesheet('17/9/2026', 'various activities: ... standup: Konzultace');
 

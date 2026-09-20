@@ -121,7 +121,7 @@ function parseTimePairs(value: string): { endIndex: number; value: Array<{ end: 
     }
 
     const start = parseTime(match[1] ?? '');
-    const end = parseTime(match[2] ?? '');
+    const end = start ? parseEndTime(match[2] ?? '', start) : undefined;
     if (!start || !end) {
       return undefined;
     }
@@ -144,13 +144,25 @@ function parseTimePairs(value: string): { endIndex: number; value: Array<{ end: 
 }
 
 function parseTime(value: string): LocalTime | undefined {
-  const normalized = value.padStart(4, '0');
-  const hour = Number(normalized.slice(0, 2));
-  const minute = Number(normalized.slice(2, 4));
+  const hour = value.length <= 2 ? Number(value) : Number(value.slice(0, -2));
+  const minute = value.length <= 2 ? 0 : Number(value.slice(-2));
   if (hour > 23 || minute > 59) {
     return undefined;
   }
   return { hour, minute };
+}
+
+function parseEndTime(value: string, start: LocalTime): LocalTime | undefined {
+  const wholeHour = parseTime(value);
+  if (wholeHour) {
+    return wholeHour;
+  }
+
+  const minutes = Number(value);
+  if (value.length <= 2 && start.hour === 23 && minutes <= 59) {
+    return { hour: 0, minute: minutes };
+  }
+  return undefined;
 }
 
 function startsWithTime(value: string): boolean {
