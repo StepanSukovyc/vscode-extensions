@@ -41,3 +41,8 @@ export interface ClickUpTaskDetail {
 export interface ClickUpCommentsResponse {
   comments?: ClickUpComment[];
 }
+
+export interface ClickUpTaskUpdate {
+  markdown_content?: string;
+  status?: string;
+}

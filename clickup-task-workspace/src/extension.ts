@@ -1,11 +1,15 @@
 import * as vscode from 'vscode';
+import { importTimesheetCommand } from './commands/importTimesheetCommand.js';
 import { updateTaskCommand } from './commands/updateTaskCommand.js';
-import { clearApiToken, promptAndStoreApiToken } from './configuration.js';
+import { clearApiToken, clearClockifyApiToken, promptAndStoreApiToken, promptAndStoreClockifyApiToken } from './configuration.js';
 
 export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.commands.registerCommand('clickup-task-workspace.updateTask', async () => {
       await updateTaskCommand(context);
+    }),
+    vscode.commands.registerCommand('clickup-task-workspace.importTimesheetToClockify', async () => {
+      await importTimesheetCommand(context);
     }),
     vscode.commands.registerCommand('clickup-task-workspace.setApiToken', async () => {
       const token = await promptAndStoreApiToken(context.secrets);
@@ -22,6 +26,23 @@ export function activate(context: vscode.ExtensionContext): void {
       if (confirmation === 'Odstranit') {
         await clearApiToken(context.secrets);
         void vscode.window.showInformationMessage('ClickUp API token byl odstraněn.');
+      }
+    }),
+    vscode.commands.registerCommand('clickup-task-workspace.setClockifyApiToken', async () => {
+      const token = await promptAndStoreClockifyApiToken(context.secrets);
+      if (token) {
+        void vscode.window.showInformationMessage('Clockify API token byl bezpečně uložen.');
+      }
+    }),
+    vscode.commands.registerCommand('clickup-task-workspace.clearClockifyApiToken', async () => {
+      const confirmation = await vscode.window.showWarningMessage(
+        'Opravdu chcete odstranit uložený Clockify API token?',
+        { modal: true },
+        'Odstranit',
+      );
+      if (confirmation === 'Odstranit') {
+        await clearClockifyApiToken(context.secrets);
+        void vscode.window.showInformationMessage('Clockify API token byl odstraněn.');
       }
     }),
   );

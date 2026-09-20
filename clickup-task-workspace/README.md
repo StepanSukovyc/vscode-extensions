@@ -1,6 +1,6 @@
 # ClickUp Task Workspace
 
-Samostatné rozšíření pro Visual Studio Code, které stáhne aktuální stav jednoho ClickUp úkolu do lokální pracovní složky. Nemá runtime ani build závislost na jiném projektu v tomto repozitáři.
+Samostatné rozšíření pro Visual Studio Code, které stáhne aktuální stav ClickUp úkolu do lokální pracovní složky a převede strukturovaný výkaz z jeho popisu do Clockify. Nemá runtime ani build závislost na jiném projektu v tomto repozitáři.
 
 ## Funkce
 
@@ -14,8 +14,11 @@ Samostatné rozšíření pro Visual Studio Code, které stáhne aktuální stav
 - ponechává lokální přílohy, které už byly z ClickUpu odstraněny;
 - podporuje relativní i absolutní cílovou složku;
 - vytváří čitelný Markdown i úplné JSON snapshoty odpovědí API.
+- importuje výkaz z ClickUp úkolu do aktivního Clockify workspace;
+- před importem zobrazí náhled vytvářených, existujících, mazatelných a chybných položek;
+- rozpozná existující shodné Clockify entry a při opakovaném importu je nepřidává.
 
-Rozšíření ClickUp data pouze čte. Nemění úkol, status, tagy ani komentáře.
+Příkaz pro aktualizaci úkolu ClickUp pouze čte. Příkaz pro import výkazu může v ClickUpu změnit Markdown popis odstraněním řádků bez času, vytvořit komentář k chybnému řádku a nastavit stav úkolu.
 
 ## Požadavky
 
@@ -23,6 +26,8 @@ Rozšíření ClickUp data pouze čte. Nemění úkol, status, tagy ani komentá
 - osobní ClickUp API token;
 - ClickUp Workspace ID;
 - přístup tokenu k požadovanému úkolu;
+- osobní Clockify API token pro import výkazů;
+- Clockify projekty a štítky uvedené ve výkazu musí již existovat v aktivním workspace;
 - lokální souborový systém. Zápis do vzdáleného SSH/WSL/dev-container filesystemu tato verze nepodporuje.
 
 ## Instalace VSIX
@@ -41,14 +46,18 @@ Nastavení otevřete přes `Preferences: Open Settings` a vyhledejte `ClickUp Ta
 | `clickupTaskWorkspace.workspaceId` | prázdná | Povinné číselné ID ClickUp Workspace. Workspace ID z celé URL má pro dané spuštění přednost. |
 | `clickupTaskWorkspace.tasksFolder` | `tasks` | Relativní cesta vůči workspace aktivního souboru nebo absolutní cesta. |
 | `clickupTaskWorkspace.largeAttachmentWarningMb` | `100` | Velikost, od které se zobrazí varování. Nejde o pevný limit. |
+| `clickupTaskWorkspace.clockifyApiBaseUrl` | `https://api.clockify.me/api/v1` | Základní HTTPS URL Clockify API v1; pro regionální Clockify server ji lze změnit. |
 
-Token se nezapisuje do `settings.json`. Nastavuje se příkazem `ClickUp Task Workspace: Nastavit ClickUp API token` a ukládá se přes VS Code SecretStorage.
+Tokeny se nezapisují do `settings.json`. Nastavují se příkazy pro ClickUp a Clockify API token a ukládají se přes VS Code SecretStorage.
 
 ## Příkazy
 
 - `ClickUp Task Workspace: Aktualizovat ClickUp úkol`
+- `ClickUp Task Workspace: Importovat výkaz do Clockify`
 - `ClickUp Task Workspace: Nastavit ClickUp API token`
 - `ClickUp Task Workspace: Odstranit ClickUp API token`
+- `ClickUp Task Workspace: Nastavit Clockify API token`
+- `ClickUp Task Workspace: Odstranit Clockify API token`
 
 ## Použití
 
@@ -94,6 +103,39 @@ Externí obrázky z Markdown popisu se stahují automaticky pouze přes HTTP/HTT
 
 API token se neposílá serverům s přílohami ani externím obrázkům; používá se pouze pro ClickUp API požadavky.
 
+Clockify token se používá pouze pro Clockify API. Zápisy do Clockify se automaticky neopakují, aby síťová nejistota nemohla vytvářet duplicity.
+
+## Import výkazu do Clockify
+
+1. Nastavte oba API tokeny a `clickupTaskWorkspace.workspaceId`.
+2. V Clockify vyberte cílový workspace jako aktivní.
+3. Vytvořte úkol, jehož název je přesně datum ve tvaru `D/M/YYYY`, například `12/9/2025`.
+4. Do Markdown popisu vložte výkaz a spusťte příkaz `Importovat výkaz do Clockify`.
+5. Zkontrolujte náhled a potvrďte import.
+
+Každý výkazový řádek má tvar:
+
+```text
+<projekt> : <čas-od> - <čas-do>, <čas-od> - <čas-do> <štítky> : <popis>
+```
+
+Například:
+
+```text
+various activities: 815 - 830, 1830 - 1835 management: Různé (emaily, aktualizace nástrojů, plánování apod.)
+```
+
+- Časy přijímají zápis `9`, `815`, `1830` nebo `2330`; páry lze oddělit čárkou i mezerou.
+- Interval `2330 - 30` končí následující kalendářní den.
+- Časy jsou vyhodnoceny v `Europe/Prague`; neexistující nebo nejednoznačný čas při změně letního času je chyba.
+- Název projektu ani štítku nesmí obsahovat dvojtečku. Popis může obsahovat libovolný text včetně dalších dvojteček a URL.
+- Řádek bez časové dvojice se po potvrzení odstraní z ClickUp Markdownu.
+- Neúplný čas, neexistující projekt nebo štítek a chyba Clockify vytvoří jeden ClickUp komentář pro daný zdrojový řádek.
+
+Existující Clockify entry se považuje za hotové, pokud se shoduje začátek, konec, projekt, popis a množina štítků. Překrývající se i opakované intervaly uvedené přímo ve výkazu jsou povolené.
+
+Pokud se část entry vytvoří a pozdější zápis selže, rozšíření již vytvořené entry nemaže. Další spuštění je podle shody rozpozná a přeskočí. Při libovolné chybě výkazu nebo zápisu nastaví úkol na `COOPERATION`; při úspěchu na `QA REVIEW`.
+
 ## Známá omezení
 
 - ClickUp Docs připojené k úkolu endpoint `Get Task` nevrací.
@@ -135,9 +177,11 @@ Hlavní skripty:
 src/
   clickup/       ClickUp API klient a datové typy
   commands/      uživatelské příkazy
+  clockify/      Clockify API klient a datové typy
   domain/        parser vstupu, Markdown a plán příloh
   files/         transakční lokální synchronizace
   network/       bezpečné URL a streamované stahování
+  timesheet/     parser a plán importu výkazu
   extension.ts   registrace rozšíření
 ```
 

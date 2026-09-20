@@ -1,7 +1,7 @@
 {
   "name": "clickup-task-workspace",
   "displayName": "ClickUp Task Workspace",
-  "description": "Stahování ClickUp úkolů a jejich podkladů do lokální pracovní složky.",
+  "description": "Stahování ClickUp úkolů do lokální pracovní složky a import strukturovaných výkazů do Clockify.",
   "version": "0.1.0",
   "icon": "images/icon.png",
   "publisher": "stepansukovyc",
@@ -31,6 +31,11 @@
         "category": "ClickUp Task Workspace"
       },
       {
+        "command": "clickup-task-workspace.importTimesheetToClockify",
+        "title": "Importovat výkaz do Clockify",
+        "category": "ClickUp Task Workspace"
+      },
+      {
         "command": "clickup-task-workspace.setApiToken",
         "title": "Nastavit ClickUp API token",
         "category": "ClickUp Task Workspace"
@@ -38,6 +43,16 @@
       {
         "command": "clickup-task-workspace.clearApiToken",
         "title": "Odstranit ClickUp API token",
+        "category": "ClickUp Task Workspace"
+      },
+      {
+        "command": "clickup-task-workspace.setClockifyApiToken",
+        "title": "Nastavit Clockify API token",
+        "category": "ClickUp Task Workspace"
+      },
+      {
+        "command": "clickup-task-workspace.clearClockifyApiToken",
+        "title": "Odstranit Clockify API token",
         "category": "ClickUp Task Workspace"
       }
     ],
@@ -59,6 +74,11 @@
           "default": 100,
           "minimum": 1,
           "markdownDescription": "Velikost přílohy v MB, od které se zobrazí varování. Nejde o limit stahování."
+        },
+        "clickupTaskWorkspace.clockifyApiBaseUrl": {
+          "type": "string",
+          "default": "https://api.clockify.me/api/v1",
+          "markdownDescription": "Základní HTTPS URL Clockify API v1. Změňte pouze při použití regionálního Clockify serveru."
         }
       }
     }

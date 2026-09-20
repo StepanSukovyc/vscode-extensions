@@ -33,3 +33,36 @@ describe('ClickUpClient.getTask', () => {
     expect(requestedUrl).not.toContain('custom_task_ids');
   });
 });
+
+describe('ClickUpClient mutations', () => {
+  it('aktualizuje úkol bez automatického retry', async () => {
+    const requests: Array<{ init?: RequestInit; url: string }> = [];
+    const fetchMock: typeof fetch = (input, init) => {
+      requests.push({ init, url: input instanceof Request ? input.url : input.toString() });
+      return Promise.resolve(new Response(JSON.stringify({ id: 'abc', name: 'Task' }), { status: 200 }));
+    };
+    const client = new ClickUpClient('token', fetchMock);
+
+    await client.updateTask('abc', { status: 'QA REVIEW' });
+
+    expect(requests).toHaveLength(1);
+    expect(requests[0]?.url).toContain('/task/abc');
+    expect(requests[0]?.init?.method).toBe('PUT');
+    expect(requests[0]?.init?.headers).toMatchObject({ Authorization: 'token', 'Content-Type': 'application/json' });
+    expect(requests[0]?.init?.body).toBe(JSON.stringify({ status: 'QA REVIEW' }));
+  });
+
+  it('vytváří komentář s čistým textem', async () => {
+    let request: RequestInit | undefined;
+    const fetchMock: typeof fetch = (_input, init) => {
+      request = init;
+      return Promise.resolve(new Response(JSON.stringify({ id: 'comment-1' }), { status: 200 }));
+    };
+    const client = new ClickUpClient('token', fetchMock);
+
+    await client.createComment('abc', 'Chyba na řádku 2');
+
+    expect(request?.method).toBe('POST');
+    expect(request?.body).toBe(JSON.stringify({ comment_text: 'Chyba na řádku 2' }));
+  });
+});

@@ -1,5 +1,5 @@
 import type { ParsedTaskInput } from '../domain/taskInput.js';
-import type { ClickUpComment, ClickUpCommentsResponse, ClickUpTaskDetail } from './types.js';
+import type { ClickUpComment, ClickUpCommentsResponse, ClickUpTaskDetail, ClickUpTaskUpdate } from './types.js';
 
 const DEFAULT_API_BASE_URL = 'https://api.clickup.com/api/v2';
 const COMMENT_PAGE_SIZE = 25;
@@ -80,13 +80,38 @@ export class ClickUpClient {
     return comments.reverse();
   }
 
-  private async requestJson<T>(endpoint: string, signal?: AbortSignal): Promise<T> {
-    for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
+  public async updateTask(taskId: string, update: ClickUpTaskUpdate, signal?: AbortSignal): Promise<ClickUpTaskDetail> {
+    return await this.requestJson<ClickUpTaskDetail>(
+      `/task/${encodeURIComponent(taskId)}`,
+      signal,
+      { body: JSON.stringify(update), method: 'PUT' },
+    );
+  }
+
+  public async createComment(taskId: string, commentText: string, signal?: AbortSignal): Promise<ClickUpComment> {
+    return await this.requestJson<ClickUpComment>(
+      `/task/${encodeURIComponent(taskId)}/comment`,
+      signal,
+      { body: JSON.stringify({ comment_text: commentText }), method: 'POST' },
+    );
+  }
+
+  private async requestJson<T>(
+    endpoint: string,
+    signal?: AbortSignal,
+    options: { body?: string; method?: 'GET' | 'POST' | 'PUT' } = {},
+  ): Promise<T> {
+    const method = options.method ?? 'GET';
+    const retries = method === 'GET' ? MAX_RETRIES : 0;
+    for (let attempt = 0; attempt <= retries; attempt += 1) {
       const response = await this.fetchImplementation(`${this.apiBaseUrl}${endpoint}`, {
+        body: options.body,
         headers: {
           Accept: 'application/json',
           Authorization: this.token,
+          ...(options.body ? { 'Content-Type': 'application/json' } : {}),
         },
+        method,
         signal,
       });
 
@@ -96,7 +121,7 @@ export class ClickUpClient {
 
       const body = await response.text();
       const retryable = response.status === 429 || response.status >= 500;
-      if (!retryable || attempt === MAX_RETRIES) {
+      if (!retryable || attempt === retries) {
         throw new ClickUpApiError(
           `ClickUp API vrátilo HTTP ${response.status}.`,
           response.status,
