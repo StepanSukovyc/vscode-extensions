@@ -35,6 +35,7 @@
     "pretest": "pnpm run compile && pnpm run lint",
     "lint": "eslint src",
     "test": "vscode-test",
+    "check": "pnpm run compile && pnpm run lint && pnpm run test",
     "package": "pnpm run compile && vsce package --no-dependencies --allow-missing-repository --out versions/json-text-normalizer.vsix"
   },
   "devDependencies": {

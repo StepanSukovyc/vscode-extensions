@@ -22,6 +22,12 @@ pnpm run package
 
 Vzniklý soubor `.vsix` nainstalujte ve VS Code příkazem `Extensions: Install from VSIX...`.
 
+## Bezpečnost a kvalita
+
+GitHub Actions ověřují oba packages při každém pushi a pull requestu pomocí typechecku, lintu a testů. Dále probíhá kontrola produkčních závislostí přes `pnpm audit`, CodeQL analýza TypeScriptu a dependency review pull requestů.
+
+Dependabot každý týden vytváří návrhy aktualizací npm/pnpm závislostí. GitHub Secret Scanning a Push Protection je nutné zapnout v nastavení repozitáře na GitHubu; neukládejte tokeny ani jiné přihlašovací údaje do zdrojového kódu nebo GitHub Actions workflow.
+
 ## Licence
 
 Zdrojové kódy v tomto repozitáři jsou licencovány pod MIT licencí. Podrobnosti jsou v souboru `LICENSE.txt` každého rozšíření.
