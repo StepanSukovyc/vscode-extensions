@@ -25,7 +25,8 @@ interface LocalTime {
   minute: number;
 }
 
-const TIME_PAIR = /^(\d{1,4})\s*-\s*(\d{1,4})/;
+const TIME_VALUE = '(?:\\d{1,2}:\\d{1,2}|\\d{1,4})';
+const TIME_PAIR = new RegExp(`^(${TIME_VALUE})\\s*-\\s*(${TIME_VALUE})`);
 const TASK_DATE = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
 
 export function parseTimesheet(taskName: string, content: string, timeZone = 'Europe/Prague'): ParsedTimesheet {
@@ -144,8 +145,13 @@ function parseTimePairs(value: string): { endIndex: number; value: Array<{ end: 
 }
 
 function parseTime(value: string): LocalTime | undefined {
-  const hour = value.length <= 2 ? Number(value) : Number(value.slice(0, -2));
-  const minute = value.length <= 2 ? 0 : Number(value.slice(-2));
+  const [hourValue, minuteValue] = value.split(':');
+  const hour = minuteValue === undefined
+    ? value.length <= 2 ? Number(value) : Number(value.slice(0, -2))
+    : Number(hourValue);
+  const minute = minuteValue === undefined
+    ? value.length <= 2 ? 0 : Number(value.slice(-2))
+    : Number(minuteValue);
   if (hour > 23 || minute > 59) {
     return undefined;
   }

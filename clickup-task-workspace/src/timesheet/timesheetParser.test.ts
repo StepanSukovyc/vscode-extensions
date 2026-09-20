@@ -52,6 +52,27 @@ describe('parseTimesheet', () => {
     });
   });
 
+  it('přijme zápis hodin a minut oddělených dvojtečkou', () => {
+    const result = parseTimesheet(
+      '17/9/2026',
+      'Sentinel: 13 - 14:20, 16 - 17 development: [app.clickup.com/t/2422460/TTS-11514](http://app.clickup.com/t/2422460/TTS-11514)',
+    );
+
+    expect(result.invalidLines).toEqual([]);
+    expect(result.entries).toMatchObject([
+      {
+        end: '2026-09-17T12:20:00.000Z',
+        start: '2026-09-17T11:00:00.000Z',
+        tagNames: ['development'],
+      },
+      {
+        end: '2026-09-17T15:00:00.000Z',
+        start: '2026-09-17T14:00:00.000Z',
+        tagNames: ['development'],
+      },
+    ]);
+  });
+
   it('označí řádek bez časů k odstranění', () => {
     const result = parseTimesheet('17/9/2026', 'various activities: ... standup: Konzultace');
 
