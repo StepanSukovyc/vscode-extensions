@@ -4,6 +4,6 @@ Personal collection of Visual Studio Code extensions, developer tools and produc
 
 ## Copyright
 
-Copyright (c) 2026 Stepan Sukovyc
+Copyright (c) 2026 Mgr. Stepan Sukovyc
 
 All rights reserved.
