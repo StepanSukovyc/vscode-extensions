@@ -77,7 +77,7 @@ export class ClickUpClient {
       startId = lastComment.id;
     }
 
-    return comments.reverse();
+    return await Promise.all(comments.reverse().map(async (comment) => await this.loadReplies(comment, signal)));
   }
 
   public async updateTask(taskId: string, update: ClickUpTaskUpdate, signal?: AbortSignal): Promise<ClickUpTaskDetail> {
@@ -94,6 +94,22 @@ export class ClickUpClient {
       signal,
       { body: JSON.stringify({ comment_text: commentText }), method: 'POST' },
     );
+  }
+
+  private async loadReplies(comment: ClickUpComment, signal?: AbortSignal): Promise<ClickUpComment> {
+    if (!comment.id || !comment.reply_count) {
+      return comment;
+    }
+
+    const response = await this.requestJson<ClickUpCommentsResponse | ClickUpComment[]>(
+      `/comment/${encodeURIComponent(comment.id)}/reply`,
+      signal,
+    );
+    const replies = Array.isArray(response) ? response : response.comments ?? [];
+    return {
+      ...comment,
+      replies: await Promise.all(replies.map(async (reply) => await this.loadReplies(reply, signal))),
+    };
   }
 
   private async requestJson<T>(

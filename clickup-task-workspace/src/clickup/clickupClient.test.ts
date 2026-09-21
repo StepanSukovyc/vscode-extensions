@@ -34,6 +34,39 @@ describe('ClickUpClient.getTask', () => {
   });
 });
 
+describe('ClickUpClient.getComments', () => {
+  it('načte rekurzivně odpovědi ve vláknu', async () => {
+    const requestedUrls: string[] = [];
+    const fetchMock: typeof fetch = (input) => {
+      const url = input instanceof Request ? input.url : input.toString();
+      requestedUrls.push(url);
+      if (url.endsWith('/task/task-1/comment')) {
+        return Promise.resolve(new Response(JSON.stringify({
+          comments: [{ id: 'parent', comment_text: 'Nadřazený komentář', reply_count: 1 }],
+        }), { status: 200 }));
+      }
+      if (url.endsWith('/comment/parent/reply')) {
+        return Promise.resolve(new Response(JSON.stringify({
+          comments: [{ id: 'child', comment_text: 'První odpověď', reply_count: 1 }],
+        }), { status: 200 }));
+      }
+      return Promise.resolve(new Response(JSON.stringify({
+        comments: [{ id: 'grandchild', comment_text: 'Vnořená odpověď' }],
+      }), { status: 200 }));
+    };
+    const client = new ClickUpClient('token', fetchMock);
+
+    const comments = await client.getComments('task-1');
+
+    expect(requestedUrls).toEqual([
+      'https://api.clickup.com/api/v2/task/task-1/comment',
+      'https://api.clickup.com/api/v2/comment/parent/reply',
+      'https://api.clickup.com/api/v2/comment/child/reply',
+    ]);
+    expect(comments[0]?.replies?.[0]?.replies?.[0]?.comment_text).toBe('Vnořená odpověď');
+  });
+});
+
 describe('ClickUpClient mutations', () => {
   it('aktualizuje úkol bez automatického retry', async () => {
     const requests: Array<{ init?: RequestInit; url: string }> = [];

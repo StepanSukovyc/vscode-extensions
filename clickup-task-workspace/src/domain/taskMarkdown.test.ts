@@ -42,6 +42,23 @@ describe('buildTaskMarkdown', () => {
     expect(markdown).toContain('[image.png](./image.png)');
   });
 
+  it('zahrne vnořené odpovědi z diskuze', () => {
+    const markdown = buildTaskMarkdown(
+      { id: 'abc', name: 'Test' },
+      [{
+        id: 'c1',
+        comment_text: 'Rodičovský komentář',
+        replies: [{ id: 'c2', comment_text: 'Vnořená odpověď' }],
+      }],
+      'Popis',
+      [],
+    );
+
+    expect(markdown).toContain('Rodičovský komentář');
+    expect(markdown).toContain('#### Odpověď 1.1: Neznámý autor');
+    expect(markdown).toContain('Vnořená odpověď');
+  });
+
   it('odstraní redundantní úvodní nadpis Popis', () => {
     const markdown = buildTaskMarkdown(
       { id: 'abc', name: 'Test' },

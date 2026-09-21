@@ -21,6 +21,8 @@ export interface ClickUpComment {
   comment_text?: string;
   date?: string;
   id?: string;
+  reply_count?: number;
+  replies?: ClickUpComment[];
   user?: ClickUpUser;
   [key: string]: unknown;
 }

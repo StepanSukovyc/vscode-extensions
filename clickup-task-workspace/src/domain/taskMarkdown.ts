@@ -139,18 +139,27 @@ function formatComments(comments: readonly ClickUpComment[]): string[] {
     return ['_Bez komentářů._'];
   }
 
-  return comments.flatMap((comment, index) => {
-    const author = comment.user?.username || comment.user?.email || 'Neznámý autor';
-    const text = extractText(comment.comment_text ?? comment.comment) || '_Bez textu._';
-    return [
-      `### ${index + 1}. ${escapeMarkdown(author)}`,
-      '',
-      `_${formatDate(comment.date)}_`,
-      '',
-      text,
-      '',
-    ];
-  });
+  return comments.flatMap((comment, index) => formatCommentThread(comment, `${index + 1}`, 0));
+}
+
+function formatCommentThread(comment: ClickUpComment, position: string, depth: number): string[] {
+  const author = comment.user?.username || comment.user?.email || 'Neznámý autor';
+  const text = extractText(comment.comment_text ?? comment.comment) || '_Bez textu._';
+  const headingLevel = '#'.repeat(Math.min(6, 3 + depth));
+  const title = depth === 0 ? position : `Odpověď ${position}`;
+  const lines = [
+    `${headingLevel} ${title}: ${escapeMarkdown(author)}`,
+    '',
+    `_${formatDate(comment.date)}_`,
+    '',
+    text,
+    '',
+  ];
+
+  return [
+    ...lines,
+    ...(comment.replies ?? []).flatMap((reply, index) => formatCommentThread(reply, `${position}.${index + 1}`, depth + 1)),
+  ];
 }
 
 function extractText(value: unknown): string {
