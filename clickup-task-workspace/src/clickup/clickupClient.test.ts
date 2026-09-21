@@ -16,6 +16,7 @@ describe('ClickUpClient.getTask', () => {
     expect(requestedUrl).toContain('/task/TTS-1?');
     expect(requestedUrl).toContain('custom_task_ids=true');
     expect(requestedUrl).toContain('team_id=2422460');
+    expect(requestedUrl).toContain('include_subtasks=true');
   });
 
   it('nepřidá custom parametry pro interní ID', async () => {
@@ -31,6 +32,21 @@ describe('ClickUpClient.getTask', () => {
     const requestedUrl = requestedUrls[0] ?? '';
     expect(requestedUrl).toContain('include_markdown_description=true');
     expect(requestedUrl).not.toContain('custom_task_ids');
+  });
+
+  it('načte parent task podle interního ID', async () => {
+    const requestedUrls: string[] = [];
+    const fetchMock: typeof fetch = (input) => {
+      requestedUrls.push(input instanceof Request ? input.url : input.toString());
+      return Promise.resolve(new Response(JSON.stringify({ custom_id: 'TTS-11645', id: 'parent-1', name: 'Parent' }), { status: 200 }));
+    };
+    const client = new ClickUpClient('token', fetchMock);
+
+    await client.getTaskById('parent-1');
+
+    expect(requestedUrls).toEqual([
+      'https://api.clickup.com/api/v2/task/parent-1?include_subtasks=true',
+    ]);
   });
 });
 

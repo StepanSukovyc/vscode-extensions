@@ -42,6 +42,27 @@ describe('buildTaskMarkdown', () => {
     expect(markdown).toContain('[image.png](./image.png)');
   });
 
+  it('zvýrazní parent, subtasks a závislosti pomocí dostupných identifikátorů', () => {
+    const markdown = buildTaskMarkdown(
+      {
+        dependencies: [{ depends_on: 'dependency-1', task_id: 'child-1' }],
+        id: 'child-1',
+        name: 'Podřízený task',
+        parent: 'parent-1',
+        subtasks: [{ custom_id: 'TTS-11647', id: 'subtask-1', name: 'Dílčí task' }],
+      },
+      [],
+      'Popis',
+      [],
+      { custom_id: 'TTS-11645', id: 'parent-1', name: 'Nadřazený task' },
+    );
+
+    expect(markdown).toContain('## Vztahy a závislosti');
+    expect(markdown).toContain('**Nadřazený úkol:** TTS-11645 - Nadřazený task');
+    expect(markdown).toContain('TTS-11647 - Dílčí task');
+    expect(markdown).toContain('**Závislosti (interní ID):** dependency-1');
+  });
+
   it('zahrne vnořené odpovědi z diskuze', () => {
     const markdown = buildTaskMarkdown(
       { id: 'abc', name: 'Test' },

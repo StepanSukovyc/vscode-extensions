@@ -6,7 +6,8 @@ import { buildTaskMarkdown, collectExternalImageUrls, rewriteImageUrls } from '.
 import { downloadToFile, type DownloadProgress } from '../network/download.js';
 
 const MANIFEST_FILE = '.clickup-task-workspace.json';
-const GENERATED_FILES = ['clickup-task.json', 'clickup-comments.json', MANIFEST_FILE, 'popis.md'];
+const RELATIONSHIPS_FILE = 'clickup-task-relations.json';
+const GENERATED_FILES = ['clickup-task.json', 'clickup-comments.json', RELATIONSHIPS_FILE, MANIFEST_FILE, 'popis.md'];
 
 interface SyncManifest {
   mappings: Record<string, string>;
@@ -21,6 +22,7 @@ export interface TaskFileSyncOptions {
   downloadFile?: typeof downloadToFile;
   onDownloadHeaders?: (fileName: string, contentLength: number | undefined) => Promise<void>;
   onDownloadProgress?: (fileName: string, progress: DownloadProgress) => void;
+  parentTask?: ClickUpTaskDetail;
   signal?: AbortSignal;
   targetFolder: string;
   task: ClickUpTaskDetail;
@@ -30,6 +32,25 @@ export interface TaskFileSyncOptions {
 export interface TaskFileSyncResult {
   downloadedFiles: string[];
   popisPath: string;
+}
+
+interface TaskRelationshipsExport {
+  dependencies: ClickUpTaskDetail['dependencies'];
+  parent: {
+    custom_id?: string | null;
+    id: string;
+    name?: string;
+    url?: string;
+  } | null;
+  subtasks: ClickUpTaskDetail['subtasks'];
+  top_level_parent: string | null | undefined;
+}
+
+interface ExportedParentTask {
+  custom_id?: string | null;
+  id: string;
+  name?: string;
+  url?: string;
 }
 
 export async function syncTaskFiles(options: TaskFileSyncOptions): Promise<TaskFileSyncResult> {
@@ -67,7 +88,9 @@ export async function syncTaskFiles(options: TaskFileSyncOptions): Promise<TaskF
 
     const rewrittenDescription = rewriteImageUrls(sourceDescription, plan.sourceToFile);
     const downloadedFiles = plan.downloads.map((item) => item.fileName);
-    const markdown = buildTaskMarkdown(options.task, options.comments, rewrittenDescription, downloadedFiles);
+    const markdown = buildTaskMarkdown(options.task, options.comments, rewrittenDescription, downloadedFiles, options.parentTask);
+    const relationships = buildRelationshipsExport(options.task, options.parentTask);
+    const exportedTask = buildTaskExport(options.task, options.parentTask);
     const manifest: SyncManifest = {
       mappings: Object.fromEntries(plan.downloads.map((item) => [item.key, item.fileName])),
       taskId: options.task.id,
@@ -76,8 +99,9 @@ export async function syncTaskFiles(options: TaskFileSyncOptions): Promise<TaskF
       workspaceId: options.workspaceId,
     };
 
-    await writeFile(path.join(stagingFolder, 'clickup-task.json'), `${JSON.stringify(options.task, null, 2)}\n`, 'utf8');
+    await writeFile(path.join(stagingFolder, 'clickup-task.json'), `${JSON.stringify(exportedTask, null, 2)}\n`, 'utf8');
     await writeFile(path.join(stagingFolder, 'clickup-comments.json'), `${JSON.stringify(options.comments, null, 2)}\n`, 'utf8');
+    await writeFile(path.join(stagingFolder, RELATIONSHIPS_FILE), `${JSON.stringify(relationships, null, 2)}\n`, 'utf8');
     await writeFile(path.join(stagingFolder, MANIFEST_FILE), `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
     await writeFile(path.join(stagingFolder, 'popis.md'), markdown, 'utf8');
 
@@ -87,6 +111,45 @@ export async function syncTaskFiles(options: TaskFileSyncOptions): Promise<TaskF
   } finally {
     await rm(stagingFolder, { force: true, recursive: true });
   }
+}
+
+function buildRelationshipsExport(task: ClickUpTaskDetail, parentTask?: ClickUpTaskDetail): TaskRelationshipsExport {
+  return {
+    dependencies: task.dependencies,
+    parent: parentTask
+      ? {
+        custom_id: parentTask.custom_id,
+        id: parentTask.id,
+        name: parentTask.name,
+        url: parentTask.url,
+      }
+      : task.parent
+        ? { id: task.parent }
+        : null,
+    subtasks: task.subtasks,
+    top_level_parent: task.top_level_parent,
+  };
+}
+
+function buildTaskExport(task: ClickUpTaskDetail, parentTask?: ClickUpTaskDetail): ClickUpTaskDetail & { parent_task?: ExportedParentTask } {
+  const { parent, top_level_parent, ...otherTaskProperties } = task;
+  const parentReference = parentTask
+    ? {
+      custom_id: parentTask.custom_id,
+      id: parentTask.id,
+      name: parentTask.name,
+      url: parentTask.url,
+    }
+    : parent
+      ? { id: parent }
+      : undefined;
+
+  return {
+    ...otherTaskProperties,
+    parent,
+    ...(parentReference ? { parent_task: parentReference } : {}),
+    top_level_parent,
+  };
 }
 
 async function readManifest(manifestPath: string): Promise<SyncManifest | undefined> {

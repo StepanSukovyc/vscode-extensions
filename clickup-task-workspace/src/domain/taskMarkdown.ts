@@ -2,7 +2,7 @@ import type { Definition, Image, ImageReference, Root } from 'mdast';
 import { fromMarkdown } from 'mdast-util-from-markdown';
 import { toMarkdown } from 'mdast-util-to-markdown';
 import { visit } from 'unist-util-visit';
-import type { ClickUpComment, ClickUpTaskDetail } from '../clickup/types.js';
+import type { ClickUpComment, ClickUpTaskDetail, ClickUpTaskReference } from '../clickup/types.js';
 
 export function collectExternalImageUrls(markdown: string): Set<string> {
   const tree = fromMarkdown(markdown);
@@ -50,6 +50,7 @@ export function buildTaskMarkdown(
   comments: readonly ClickUpComment[],
   description: string,
   downloadedFiles: readonly string[],
+  parentTask?: ClickUpTaskDetail,
 ): string {
   const normalizedDescription = removeLeadingDescriptionHeading(description);
   const lines = [
@@ -77,6 +78,10 @@ export function buildTaskMarkdown(
     '',
     normalizedDescription || '_Bez popisu._',
     '',
+    '## Vztahy a závislosti',
+    '',
+    ...formatTaskRelationships(task, parentTask),
+    '',
     '## Komentáře',
     '',
     ...formatComments(comments),
@@ -98,6 +103,51 @@ export function buildTaskMarkdown(
   ];
 
   return lines.join('\n');
+}
+
+function formatTaskRelationships(task: ClickUpTaskDetail, parentTask?: ClickUpTaskDetail): string[] {
+  const lines = [
+    `- **Nadřazený úkol:** ${parentTask
+      ? formatTaskReference(parentTask)
+      : task.parent
+        ? `Interní ID: ${escapeMarkdown(task.parent)}`
+        : 'Není'}`,
+  ];
+
+  const subtasks = task.subtasks ?? [];
+  if (subtasks.length === 0) {
+    lines.push('- **Podřízené úkoly:** Nejsou');
+  } else {
+    lines.push('- **Podřízené úkoly:**');
+    lines.push(...subtasks.map((subtask) => `  - ${formatTaskReference(subtask)}`));
+  }
+
+  const dependencyIds = collectDependencyIds(task);
+  if (dependencyIds.length === 0) {
+    lines.push('- **Závislosti:** Nejsou');
+  } else {
+    lines.push(`- **Závislosti (interní ID):** ${dependencyIds.map(escapeMarkdown).join(', ')}`);
+  }
+
+  return lines;
+}
+
+function formatTaskReference(task: ClickUpTaskReference): string {
+  const identifier = task.custom_id || task.id;
+  const label = task.name ? `${identifier} - ${task.name}` : identifier;
+  const escapedLabel = escapeMarkdown(label);
+  return task.url ? `[${escapedLabel}](${task.url})` : escapedLabel;
+}
+
+function collectDependencyIds(task: ClickUpTaskDetail): string[] {
+  const identifiers = new Set<string>();
+  for (const dependency of task.dependencies ?? []) {
+    const relatedTaskId = dependency.task_id === task.id ? dependency.depends_on : dependency.task_id;
+    if (relatedTaskId) {
+      identifiers.add(relatedTaskId);
+    }
+  }
+  return [...identifiers];
 }
 
 function removeLeadingDescriptionHeading(markdown: string): string {

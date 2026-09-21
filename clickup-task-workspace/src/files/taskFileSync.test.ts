@@ -39,6 +39,7 @@ describe('syncTaskFiles', () => {
     expect(await readFile(firstResult.popisPath, 'utf8')).toContain('Testovací úkol');
     expect(await readFile(path.join(targetFolder, 'clickup-task.json'), 'utf8')).toContain('internal-1');
     expect(await readFile(path.join(targetFolder, 'clickup-comments.json'), 'utf8')).toContain('Komentář');
+    expect(await readFile(path.join(targetFolder, 'clickup-task-relations.json'), 'utf8')).toContain('"parent": null');
 
     await syncTaskFiles({
       comments: [],
@@ -49,5 +50,45 @@ describe('syncTaskFiles', () => {
     });
 
     expect(await readFile(path.join(targetFolder, 'popis_1.md'), 'utf8')).toBe('stažený obsah');
+  });
+
+  it('ukládá custom ID parent tasku do samostatného exportu vztahů', async () => {
+    const targetFolder = await mkdtemp(path.join(os.tmpdir(), 'clickup-task-workspace-test-'));
+    temporaryFolders.push(targetFolder);
+
+    await syncTaskFiles({
+      comments: [],
+      parentTask: { custom_id: 'TTS-11645', id: '123ymg9x0zm', name: 'Nadřazený task' },
+      targetFolder,
+      task: {
+        id: 'child-1',
+        name: 'Podřízený task',
+        parent: '123ymg9x0zm',
+        top_level_parent: '123ymg9x0zm',
+      },
+      workspaceId: '2422460',
+    });
+
+    const relationships = JSON.parse(await readFile(path.join(targetFolder, 'clickup-task-relations.json'), 'utf8')) as {
+      parent: { custom_id?: string | null; id: string; name?: string } | null;
+    };
+    const exportedTask = JSON.parse(await readFile(path.join(targetFolder, 'clickup-task.json'), 'utf8')) as {
+      parent: string;
+      parent_task?: { custom_id?: string | null; id: string; name?: string };
+    };
+    expect(relationships.parent).toMatchObject({
+      custom_id: 'TTS-11645',
+      id: '123ymg9x0zm',
+      name: 'Nadřazený task',
+    });
+    expect(exportedTask.parent).toBe('123ymg9x0zm');
+    expect(exportedTask.parent_task).toMatchObject({
+      custom_id: 'TTS-11645',
+      id: '123ymg9x0zm',
+      name: 'Nadřazený task',
+    });
+    const exportedTaskText = await readFile(path.join(targetFolder, 'clickup-task.json'), 'utf8');
+    expect(exportedTaskText.indexOf('"parent"')).toBeLessThan(exportedTaskText.indexOf('"parent_task"'));
+    expect(exportedTaskText.indexOf('"parent_task"')).toBeLessThan(exportedTaskText.indexOf('"top_level_parent"'));
   });
 });

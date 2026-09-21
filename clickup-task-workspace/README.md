@@ -7,6 +7,7 @@ Samostatné rozšíření pro Visual Studio Code, které stáhne aktuální stav
 - přijímá custom ID (`PROJ-7383`), interní ClickUp ID i celou ClickUp URL;
 - ukládá API token do VS Code SecretStorage;
 - načítá Markdown popis, metadata, komentáře a přílohy;
+- zvýrazní nadřazený task, podřízené tasky a dostupné identifikátory závislostí;
 - stahuje všechny ClickUp přílohy;
 - stahuje veřejné externí obrázky vložené v popisu;
 - přepisuje odkazy obrázků na lokální relativní cesty;

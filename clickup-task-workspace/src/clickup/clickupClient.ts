@@ -28,7 +28,10 @@ export class ClickUpClient {
     configuredWorkspaceId: string,
     signal?: AbortSignal,
   ): Promise<ClickUpTaskDetail> {
-    const query = new URLSearchParams({ include_markdown_description: 'true' });
+    const query = new URLSearchParams({
+      include_markdown_description: 'true',
+      include_subtasks: 'true',
+    });
     if (input.kind === 'custom') {
       query.set('custom_task_ids', 'true');
       query.set('team_id', input.workspaceId ?? configuredWorkspaceId);
@@ -36,6 +39,13 @@ export class ClickUpClient {
 
     return await this.requestJson<ClickUpTaskDetail>(
       `/task/${encodeURIComponent(input.taskId)}?${query.toString()}`,
+      signal,
+    );
+  }
+
+  public async getTaskById(taskId: string, signal?: AbortSignal): Promise<ClickUpTaskDetail> {
+    return await this.requestJson<ClickUpTaskDetail>(
+      `/task/${encodeURIComponent(taskId)}?include_subtasks=true`,
       signal,
     );
   }

@@ -2,6 +2,7 @@ import { access } from 'node:fs/promises';
 import path from 'node:path';
 import * as vscode from 'vscode';
 import { ClickUpApiError, ClickUpClient } from '../clickup/clickupClient.js';
+import type { ClickUpTaskDetail } from '../clickup/types.js';
 import { getApiToken, getSettings, promptAndStoreApiToken } from '../configuration.js';
 import { parseTaskInput, sanitizeFolderName } from '../domain/taskInput.js';
 import { syncTaskFiles } from '../files/taskFileSync.js';
@@ -55,8 +56,11 @@ export async function updateTaskCommand(context: vscode.ExtensionContext): Promi
             return undefined;
           }
 
-          progress.report({ message: 'Načítám komentáře...' });
-          const comments = await client.getComments(task.id, abortController.signal);
+          progress.report({ message: 'Načítám komentáře a vztahy úkolu...' });
+          const [comments, parentTask] = await Promise.all([
+            client.getComments(task.id, abortController.signal),
+            loadParentTask(client, task.parent, abortController.signal),
+          ]);
           const approvedLargeFiles = new Set<string>();
           let approveAllLargeFiles = false;
 
@@ -90,6 +94,7 @@ export async function updateTaskCommand(context: vscode.ExtensionContext): Promi
             signal: abortController.signal,
             targetFolder,
             task,
+            parentTask,
             workspaceId: input.workspaceId ?? settings.workspaceId,
           });
         } finally {
@@ -113,6 +118,23 @@ export async function updateTaskCommand(context: vscode.ExtensionContext): Promi
       return;
     }
     void vscode.window.showErrorMessage(toUserMessage(error));
+  }
+}
+
+async function loadParentTask(
+  client: ClickUpClient,
+  parentId: string | null | undefined,
+  signal: AbortSignal,
+): Promise<ClickUpTaskDetail | undefined> {
+  if (!parentId) {
+    return undefined;
+  }
+
+  try {
+    return await client.getTaskById(parentId, signal);
+  } catch {
+    // Parent task může být pro token nedostupný, ale export aktuálního tasku musí pokračovat.
+    return undefined;
   }
 }
 

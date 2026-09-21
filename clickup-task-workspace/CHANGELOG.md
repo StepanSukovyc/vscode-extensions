@@ -9,6 +9,7 @@ Všechny významné změny tohoto rozšíření jsou uvedeny v tomto souboru. Fo
 - Import strukturovaných výkazů z ClickUp Markdownu do aktivního Clockify workspace.
 - Bezpečné uložení samostatného Clockify API tokenu ve VS Code SecretStorage.
 - Náhled importu, přeskočení existujících entry a komentáře ClickUp pro chybné zdrojové řádky.
+- Obohacený parent task v `clickup-task.json` i v `clickup-task-relations.json`, včetně `custom_id` (například `TTS-11645`).
 
 ### Změněno
 
@@ -21,6 +22,7 @@ Všechny významné změny tohoto rozšíření jsou uvedeny v tomto souboru. Fo
 
 - První veřejně licencované vydání ClickUp Task Workspace.
 - Soukromá distribuce přes VSIX.
+- Čitelná sekce vztahů s parent taskem, child tasky a identifikátory závislostí.
 
 ### Změněno
 

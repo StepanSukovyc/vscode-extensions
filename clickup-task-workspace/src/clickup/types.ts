@@ -27,15 +27,33 @@ export interface ClickUpComment {
   [key: string]: unknown;
 }
 
+export interface ClickUpTaskDependency {
+  depends_on?: string;
+  task_id?: string;
+  [key: string]: unknown;
+}
+
+export interface ClickUpTaskReference {
+  custom_id?: string | null;
+  id: string;
+  name?: string;
+  url?: string;
+  [key: string]: unknown;
+}
+
 export interface ClickUpTaskDetail {
   attachments?: ClickUpAttachment[];
   custom_id?: string | null;
   date_updated?: string;
+  dependencies?: ClickUpTaskDependency[];
   description?: string;
   id: string;
   markdown_description?: string;
   name: string;
+  parent?: string | null;
+  subtasks?: ClickUpTaskReference[];
   text_content?: string;
+  top_level_parent?: string | null;
   url?: string;
   [key: string]: unknown;
 }
