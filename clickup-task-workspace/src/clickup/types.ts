@@ -1,5 +1,6 @@
 export interface ClickUpAttachment {
   id: string;
+  parent_id?: string;
   title?: string;
   url: string;
   url_w_host?: string;
@@ -17,6 +18,7 @@ export interface ClickUpUser {
 }
 
 export interface ClickUpComment {
+  attachments?: ClickUpAttachment[];
   comment?: unknown;
   comment_text?: string;
   date?: string;

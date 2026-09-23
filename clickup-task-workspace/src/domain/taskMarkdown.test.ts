@@ -69,15 +69,22 @@ describe('buildTaskMarkdown', () => {
       [{
         id: 'c1',
         comment_text: 'Rodičovský komentář',
-        replies: [{ id: 'c2', comment_text: 'Vnořená odpověď' }],
+        replies: [{
+          attachments: [{ id: 'attachment-1', title: 'screenshot.png', url: 'https://example.com/screenshot.png' }],
+          id: 'c2',
+          comment_text: 'Vnořená odpověď',
+        }],
       }],
       'Popis',
       [],
+      undefined,
+      { 'https://example.com/screenshot.png': 'screenshot.png' },
     );
 
     expect(markdown).toContain('Rodičovský komentář');
     expect(markdown).toContain('#### Odpověď 1.1: Neznámý autor');
     expect(markdown).toContain('Vnořená odpověď');
+    expect(markdown).toContain('![screenshot.png](./screenshot.png)');
   });
 
   it('odstraní redundantní úvodní nadpis Popis', () => {

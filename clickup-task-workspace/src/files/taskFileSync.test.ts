@@ -52,6 +52,92 @@ describe('syncTaskFiles', () => {
     expect(await readFile(path.join(targetFolder, 'popis_1.md'), 'utf8')).toBe('stažený obsah');
   });
 
+  it('stáhne přílohy z komentáře i jeho vnořených odpovědí', async () => {
+    const targetFolder = await mkdtemp(path.join(os.tmpdir(), 'clickup-task-workspace-test-'));
+    temporaryFolders.push(targetFolder);
+    const downloadedUrls: string[] = [];
+    const downloadFile = async (options: DownloadOptions): Promise<void> => {
+      downloadedUrls.push(options.url);
+      await writeFile(options.destination, options.url, 'utf8');
+    };
+
+    const result = await syncTaskFiles({
+      comments: [{
+        attachments: [{ id: 'comment-image', title: 'image.png', url: 'https://example.com/comment.png' }],
+        id: 'c1',
+        replies: [{
+          attachments: [{ id: 'reply-image', title: 'image.png', url: 'https://example.com/reply.png' }],
+          id: 'c2',
+        }],
+      }],
+      downloadFile,
+      targetFolder,
+      task: { id: 'task-1', name: 'Testovací úkol' },
+      workspaceId: '2422460',
+    });
+
+    expect(downloadedUrls).toEqual(['https://example.com/comment.png', 'https://example.com/reply.png']);
+    expect(result.downloadedFiles).toEqual(['image.png', 'image_1.png']);
+    expect(await readFile(path.join(targetFolder, 'image.png'), 'utf8')).toBe('https://example.com/comment.png');
+    expect(await readFile(path.join(targetFolder, 'image_1.png'), 'utf8')).toBe('https://example.com/reply.png');
+    expect(await readFile(result.popisPath, 'utf8')).toContain('![image.png](./image.png)');
+    expect(await readFile(result.popisPath, 'utf8')).toContain('![image.png](./image_1.png)');
+  });
+
+  it('zachová pořadí obrázků z rich textu vnořené odpovědi', async () => {
+    const targetFolder = await mkdtemp(path.join(os.tmpdir(), 'clickup-task-workspace-test-'));
+    temporaryFolders.push(targetFolder);
+
+    const result = await syncTaskFiles({
+      comments: [{
+        id: 'c1',
+        replies: [{
+          comment: [
+            {
+              image: { id: 'first-image', name: 'first.png', url: 'https://example.com/first.png' },
+              text: 'first.png',
+              type: 'image',
+            },
+            { text: '\nMezi obrázky\n' },
+            {
+              image: { id: 'second-image', name: 'second.png', url: 'https://example.com/second.png' },
+              text: 'second.png',
+              type: 'image',
+            },
+          ],
+          comment_text: 'first.png\nMezi obrázky\nsecond.png',
+          id: 'c2',
+        }],
+      }],
+      downloadFile: async (options) => await writeFile(options.destination, 'obrázek', 'utf8'),
+      targetFolder,
+      task: {
+        attachments: [{
+          id: 'second-image',
+          mimetype: 'image/png',
+          parent_id: 'c2',
+          title: 'second.png',
+          url: 'https://example.com/second.png',
+        }, {
+          id: 'first-image',
+          mimetype: 'image/png',
+          parent_id: 'c2',
+          title: 'first.png',
+          url: 'https://example.com/first.png',
+        }],
+        id: 'task-1',
+        name: 'Testovací úkol',
+      },
+      workspaceId: '2422460',
+    });
+
+    const markdown = await readFile(result.popisPath, 'utf8');
+    expect(markdown).toContain('![first.png](./first.png)');
+    expect(markdown.indexOf('![first.png](./first.png)')).toBeLessThan(markdown.indexOf('Mezi obrázky'));
+    expect(markdown.indexOf('Mezi obrázky')).toBeLessThan(markdown.indexOf('![second.png](./second.png)'));
+    expect(await readFile(path.join(targetFolder, 'clickup-comments.json'), 'utf8')).toContain('"parent_id": "c2"');
+  });
+
   it('ukládá custom ID parent tasku do samostatného exportu vztahů', async () => {
     const targetFolder = await mkdtemp(path.join(os.tmpdir(), 'clickup-task-workspace-test-'));
     temporaryFolders.push(targetFolder);

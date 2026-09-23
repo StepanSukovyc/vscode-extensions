@@ -51,6 +51,7 @@ export function buildTaskMarkdown(
   description: string,
   downloadedFiles: readonly string[],
   parentTask?: ClickUpTaskDetail,
+  attachmentFiles: Readonly<Record<string, string>> = {},
 ): string {
   const normalizedDescription = removeLeadingDescriptionHeading(description);
   const lines = [
@@ -84,7 +85,7 @@ export function buildTaskMarkdown(
     '',
     '## Komentáře',
     '',
-    ...formatComments(comments),
+    ...formatComments(comments, attachmentFiles),
     '',
     '## Stažené přílohy',
     '',
@@ -184,17 +185,23 @@ function extractNodeText(value: unknown): string {
   return Array.isArray(node.children) ? node.children.map(extractNodeText).join('') : '';
 }
 
-function formatComments(comments: readonly ClickUpComment[]): string[] {
+function formatComments(comments: readonly ClickUpComment[], attachmentFiles: Readonly<Record<string, string>>): string[] {
   if (comments.length === 0) {
     return ['_Bez komentářů._'];
   }
 
-  return comments.flatMap((comment, index) => formatCommentThread(comment, `${index + 1}`, 0));
+  return comments.flatMap((comment, index) => formatCommentThread(comment, `${index + 1}`, 0, attachmentFiles));
 }
 
-function formatCommentThread(comment: ClickUpComment, position: string, depth: number): string[] {
+function formatCommentThread(
+  comment: ClickUpComment,
+  position: string,
+  depth: number,
+  attachmentFiles: Readonly<Record<string, string>>,
+): string[] {
   const author = comment.user?.username || comment.user?.email || 'Neznámý autor';
-  const text = extractText(comment.comment_text ?? comment.comment) || '_Bez textu._';
+  const content = formatCommentContent(comment, attachmentFiles);
+  const text = content.text || '_Bez textu._';
   const headingLevel = '#'.repeat(Math.min(6, 3 + depth));
   const title = depth === 0 ? position : `Odpověď ${position}`;
   const lines = [
@@ -204,12 +211,83 @@ function formatCommentThread(comment: ClickUpComment, position: string, depth: n
     '',
     text,
     '',
+    ...formatCommentAttachments(comment, attachmentFiles, content.renderedImageIds),
   ];
 
   return [
     ...lines,
-    ...(comment.replies ?? []).flatMap((reply, index) => formatCommentThread(reply, `${position}.${index + 1}`, depth + 1)),
+    ...(comment.replies ?? []).flatMap((reply, index) => formatCommentThread(
+      reply,
+      `${position}.${index + 1}`,
+      depth + 1,
+      attachmentFiles,
+    )),
   ];
+}
+
+function formatCommentContent(
+  comment: ClickUpComment,
+  attachmentFiles: Readonly<Record<string, string>>,
+): { renderedImageIds: ReadonlySet<string>; text: string } {
+  if (!Array.isArray(comment.comment)) {
+    return { renderedImageIds: new Set(), text: extractText(comment.comment_text ?? comment.comment) };
+  }
+
+  const renderedImageIds = new Set<string>();
+  const text = comment.comment.map((part) => {
+    const data = toRecord(part);
+    const image = toRecord(data?.image);
+    if (data?.type !== 'image' || !image) {
+      return extractText(part);
+    }
+
+    const imageId = stringValue(image.id);
+    const imageUrl = [image.url, image.thumbnail_large, image.thumbnail_medium, image.thumbnail_small]
+      .map(stringValue)
+      .find((url): url is string => Boolean(url));
+    const fileName = imageUrl ? attachmentFiles[imageUrl] : undefined;
+    const title = stringValue(image.title) ?? stringValue(image.name) ?? stringValue(data.text) ?? 'Obrázek';
+    if (imageId && fileName) {
+      renderedImageIds.add(imageId);
+    }
+    return fileName
+      ? `![${escapeMarkdown(title)}](./${encodeURI(fileName)})`
+      : imageUrl
+        ? `![${escapeMarkdown(title)}](${imageUrl})`
+        : extractText(part);
+  }).join('');
+
+  return { renderedImageIds, text };
+}
+
+function formatCommentAttachments(
+  comment: ClickUpComment,
+  attachmentFiles: Readonly<Record<string, string>>,
+  renderedImageIds: ReadonlySet<string>,
+): string[] {
+  return (comment.attachments ?? []).filter((attachment) => !renderedImageIds.has(attachment.id)).flatMap((attachment) => {
+    const fileName = [attachment.url, attachment.url_w_query, attachment.url_w_host]
+      .map((url) => url ? attachmentFiles[url] : undefined)
+      .find((value): value is string => Boolean(value));
+    if (!fileName) {
+      return [];
+    }
+
+    const title = attachment.title || fileName;
+    const localUrl = `./${encodeURI(fileName)}`;
+    const isImage = attachment.mimetype?.startsWith('image/') ?? /\.(avif|gif|jpe?g|png|svg|webp)$/i.test(fileName);
+    return isImage
+      ? [`![${escapeMarkdown(title)}](${localUrl})`, '']
+      : [`- [${escapeMarkdown(title)}](${localUrl})`, ''];
+  });
+}
+
+function toRecord(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === 'object' ? value as Record<string, unknown> : undefined;
+}
+
+function stringValue(value: unknown): string | undefined {
+  return typeof value === 'string' && value ? value : undefined;
 }
 
 function extractText(value: unknown): string {

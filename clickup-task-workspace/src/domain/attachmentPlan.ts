@@ -25,6 +25,7 @@ export function buildAttachmentPlan(
   const usedNames = new Set([...existingNames].map((name) => name.toLowerCase()));
   const downloads: DownloadItem[] = [];
   const sourceToFile: Record<string, string> = {};
+  const attachmentKeys = new Set<string>();
 
   for (const attachment of attachments) {
     const sourceUrls = uniqueStrings([attachment.url, attachment.url_w_query, attachment.url_w_host]);
@@ -33,6 +34,10 @@ export function buildAttachmentPlan(
     }
 
     const key = `clickup:${attachment.id}`;
+    if (attachmentKeys.has(key)) {
+      continue;
+    }
+    attachmentKeys.add(key);
     const preferredName = attachment.title || fileNameFromUrl(attachment.url) || attachment.id || 'priloha';
     const fileName = allocateName(preferredName, key, usedNames, previousMappings);
     const item: DownloadItem = {

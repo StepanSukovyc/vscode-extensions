@@ -1,6 +1,6 @@
 import { copyFile, mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import type { ClickUpComment, ClickUpTaskDetail } from '../clickup/types.js';
+import type { ClickUpAttachment, ClickUpComment, ClickUpTaskDetail } from '../clickup/types.js';
 import { buildAttachmentPlan } from '../domain/attachmentPlan.js';
 import { buildTaskMarkdown, collectExternalImageUrls, rewriteImageUrls } from '../domain/taskMarkdown.js';
 import { downloadToFile, type DownloadProgress } from '../network/download.js';
@@ -64,9 +64,11 @@ export async function syncTaskFiles(options: TaskFileSyncOptions): Promise<TaskF
     ?? options.task.description
     ?? options.task.text_content
     ?? '';
+  const taskAttachments = options.task.attachments ?? [];
+  const comments = attachTaskAttachmentsToComments(options.comments, taskAttachments);
   const externalImages = collectExternalImageUrls(sourceDescription);
   const plan = buildAttachmentPlan(
-    options.task.attachments ?? [],
+    [...taskAttachments, ...collectCommentAttachments(comments)],
     externalImages,
     existingNames,
     previousManifest?.mappings,
@@ -88,7 +90,14 @@ export async function syncTaskFiles(options: TaskFileSyncOptions): Promise<TaskF
 
     const rewrittenDescription = rewriteImageUrls(sourceDescription, plan.sourceToFile);
     const downloadedFiles = plan.downloads.map((item) => item.fileName);
-    const markdown = buildTaskMarkdown(options.task, options.comments, rewrittenDescription, downloadedFiles, options.parentTask);
+    const markdown = buildTaskMarkdown(
+      options.task,
+      comments,
+      rewrittenDescription,
+      downloadedFiles,
+      options.parentTask,
+      plan.sourceToFile,
+    );
     const relationships = buildRelationshipsExport(options.task, options.parentTask);
     const exportedTask = buildTaskExport(options.task, options.parentTask);
     const manifest: SyncManifest = {
@@ -100,7 +109,7 @@ export async function syncTaskFiles(options: TaskFileSyncOptions): Promise<TaskF
     };
 
     await writeFile(path.join(stagingFolder, 'clickup-task.json'), `${JSON.stringify(exportedTask, null, 2)}\n`, 'utf8');
-    await writeFile(path.join(stagingFolder, 'clickup-comments.json'), `${JSON.stringify(options.comments, null, 2)}\n`, 'utf8');
+    await writeFile(path.join(stagingFolder, 'clickup-comments.json'), `${JSON.stringify(comments, null, 2)}\n`, 'utf8');
     await writeFile(path.join(stagingFolder, RELATIONSHIPS_FILE), `${JSON.stringify(relationships, null, 2)}\n`, 'utf8');
     await writeFile(path.join(stagingFolder, MANIFEST_FILE), `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
     await writeFile(path.join(stagingFolder, 'popis.md'), markdown, 'utf8');
@@ -111,6 +120,53 @@ export async function syncTaskFiles(options: TaskFileSyncOptions): Promise<TaskF
   } finally {
     await rm(stagingFolder, { force: true, recursive: true });
   }
+}
+
+function collectCommentAttachments(comments: readonly ClickUpComment[]): ClickUpAttachment[] {
+  return comments.flatMap((comment) => [
+    ...(comment.attachments ?? []),
+    ...collectCommentAttachments(comment.replies ?? []),
+  ]);
+}
+
+function attachTaskAttachmentsToComments(
+  comments: readonly ClickUpComment[],
+  taskAttachments: readonly ClickUpAttachment[],
+): ClickUpComment[] {
+  const attachmentsByParentId = new Map<string, ClickUpAttachment[]>();
+  for (const attachment of taskAttachments) {
+    if (!attachment.parent_id) {
+      continue;
+    }
+    const attachments = attachmentsByParentId.get(attachment.parent_id) ?? [];
+    attachments.push(attachment);
+    attachmentsByParentId.set(attachment.parent_id, attachments);
+  }
+
+  return comments.map((comment) => {
+    const replies = attachTaskAttachmentsToComments(comment.replies ?? [], taskAttachments);
+    const attachments = uniqueAttachments([
+      ...(comment.attachments ?? []),
+      ...(comment.id ? attachmentsByParentId.get(comment.id) ?? [] : []),
+    ]);
+    return {
+      ...comment,
+      ...(attachments.length > 0 ? { attachments } : {}),
+      ...(replies.length > 0 ? { replies } : {}),
+    };
+  });
+}
+
+function uniqueAttachments(attachments: readonly ClickUpAttachment[]): ClickUpAttachment[] {
+  const seen = new Set<string>();
+  return attachments.filter((attachment) => {
+    const key = attachment.id || attachment.url;
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
 }
 
 function buildRelationshipsExport(task: ClickUpTaskDetail, parentTask?: ClickUpTaskDetail): TaskRelationshipsExport {
