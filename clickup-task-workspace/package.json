@@ -96,7 +96,7 @@
   },
   "dependencies": {
     "mdast-util-from-markdown": "^2.0.2",
-    "mdast-util-to-markdown": "^2.1.2",
+    "mdast-util-to-markdown": "^2.2.0",
     "unist-util-visit": "^5.0.0"
   },
   "devDependencies": {
