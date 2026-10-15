@@ -1,6 +1,8 @@
 import type { ClockifyEntity, ClockifyTimeEntry } from '../clockify/types.js';
 import type { ClockifyEntryPlan, InvalidTimesheetLine, ParsedTimesheet } from './timesheetParser.js';
 
+const TIME_ENTRY_LOOKUP_BUFFER_MS = 60_000;
+
 export interface ResolvedClockifyEntry extends ClockifyEntryPlan {
   projectId: string;
   tagIds: string[];
@@ -71,6 +73,23 @@ export function removeTimesheetLines(content: string, lineIndexes: number[]): st
   const lines = content.split(/\r?\n/);
   const result = lines.filter((_line, index) => !indexes.has(index));
   return result.join('\n');
+}
+
+export function getTimeEntryLookupRange(entries: Array<{ end: string; start: string }>): { end: string; start: string } | undefined {
+  if (entries.length === 0) {
+    return undefined;
+  }
+
+  const start = Math.min(...entries.map((entry) => Date.parse(entry.start)));
+  const end = Math.max(...entries.map((entry) => Date.parse(entry.end)));
+  if (Number.isNaN(start) || Number.isNaN(end)) {
+    return undefined;
+  }
+
+  return {
+    end: new Date(end + TIME_ENTRY_LOOKUP_BUFFER_MS).toISOString(),
+    start: new Date(start - TIME_ENTRY_LOOKUP_BUFFER_MS).toISOString(),
+  };
 }
 
 function indexEntities(entities: ClockifyEntity[]): Map<string, ClockifyEntity[]> {

@@ -11,7 +11,12 @@ import {
 import { parseTaskInput } from '../domain/taskInput.js';
 import { formatImportPreview } from '../timesheet/importPreview.js';
 import { parseTimesheet } from '../timesheet/timesheetParser.js';
-import { planTimesheetImport, removeTimesheetLines, type ResolvedClockifyEntry } from '../timesheet/timesheetImport.js';
+import {
+  getTimeEntryLookupRange,
+  planTimesheetImport,
+  removeTimesheetLines,
+  type ResolvedClockifyEntry,
+} from '../timesheet/timesheetImport.js';
 
 const SUCCESS_STATUS = 'QA REVIEW';
 const ERROR_STATUS = 'COOPERATION';
@@ -158,17 +163,11 @@ async function loadExistingEntries(
   entries: Array<{ end: string; start: string }>,
   signal: AbortSignal,
 ): Promise<Awaited<ReturnType<ClockifyClient['getTimeEntries']>>> {
-  if (entries.length === 0) {
+  const range = getTimeEntryLookupRange(entries);
+  if (!range) {
     return [];
   }
-  const starts = entries.map((entry) => entry.start).sort();
-  const ends = entries.map((entry) => entry.end).sort();
-  const start = starts[0];
-  const end = ends.at(-1);
-  if (!start || !end) {
-    return [];
-  }
-  return await client.getTimeEntries(workspaceId, userId, start, end, signal);
+  return await client.getTimeEntries(workspaceId, userId, range.start, range.end, signal);
 }
 
 function toCreateRequest(entry: ResolvedClockifyEntry): {

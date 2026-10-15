@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { planTimesheetImport, removeTimesheetLines } from './timesheetImport.js';
+import { getTimeEntryLookupRange, planTimesheetImport, removeTimesheetLines } from './timesheetImport.js';
 import type { ParsedTimesheet } from './timesheetParser.js';
 
 const parsedTimesheet: ParsedTimesheet = {
@@ -54,5 +54,14 @@ describe('planTimesheetImport', () => {
 describe('removeTimesheetLines', () => {
   it('odstraní jen označené řádky a ponechá ostatní Markdown', () => {
     expect(removeTimesheetLines('první\ndruhý\ntřetí', [1])).toBe('první\ntřetí');
+  });
+});
+
+describe('getTimeEntryLookupRange', () => {
+  it('rozšíří interval, aby zahrnul Clockify položky na obou hranicích', () => {
+    expect(getTimeEntryLookupRange(parsedTimesheet.entries)).toEqual({
+      end: '2026-03-11T08:31:00.000Z',
+      start: '2026-03-11T08:14:00.000Z',
+    });
   });
 });
