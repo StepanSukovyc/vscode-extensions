@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { getTimeEntryLookupRange, planTimesheetImport, removeTimesheetLines } from './timesheetImport.js';
-import type { ParsedTimesheet } from './timesheetParser.js';
+import { parseTimesheet, type ParsedTimesheet } from './timesheetParser.js';
 
 const parsedTimesheet: ParsedTimesheet = {
   entries: [{
@@ -77,6 +77,29 @@ describe('planTimesheetImport', () => {
 });
 
 describe('removeTimesheetLines', () => {
+  it('v kombinovaném výkazu odstraní jen prázdnou šablonu a zachová chybné řádky SENTINEL I', () => {
+    const lines = [
+      'SENTINEL I12 - 14 analysis, development: app.clickup.com/t/2422460/TTS-11859',
+      'Sentinel: ... development:',
+      'SENTINEL I1630 - 1715 bug fix: app.clickup.com/t/2422460/TTS-11814',
+      'Projekt 2026: 815 - 830 development: Dokumentace 11859',
+    ];
+    const content = lines.join('\n');
+    const plan = planTimesheetImport(
+      parseTimesheet('9/10/2026', content),
+      [{ id: 'project-1', name: 'Projekt 2026' }],
+      [{ id: 'tag-1', name: 'development' }],
+      [],
+    );
+
+    expect(plan.removableLineIndexes).toEqual([1]);
+    expect(plan.invalidLines.map((line) => line.lineIndex)).toEqual([0, 2]);
+    expect(plan.newEntries).toHaveLength(1);
+    expect(removeTimesheetLines(content, plan.removableLineIndexes)).toBe(
+      [lines[0], lines[2], lines[3]].join('\n'),
+    );
+  });
+
   it('odstraní jen označené řádky a ponechá ostatní Markdown', () => {
     expect(removeTimesheetLines('první\ndruhý\ntřetí', [1])).toBe('první\ntřetí');
   });

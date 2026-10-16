@@ -132,7 +132,8 @@ various activities: 815 - 830, 1830 - 1835 management: Různé (emaily, aktualiz
 - Páry lze oddělit čárkou i mezerou. Konec nočního intervalu může zapsat pouze minuty: `2330 - 30` znamená `23:30–00:30` následující kalendářní den.
 - Časy jsou vyhodnoceny v `Europe/Prague`; neexistující nebo nejednoznačný čas při změně letního času je chyba.
 - Název projektu ani štítku nesmí obsahovat dvojtečku. Popis může obsahovat libovolný text včetně dalších dvojteček a URL.
-- Řádek bez časové dvojice se po potvrzení odstraní z ClickUp Markdownu.
+- Po potvrzení se odstraní pouze jednoznačně prázdná šablona, například `Sentinel: ... development:` (lze použít také `…`). Šablona musí mít neprázdné štítky bez číslic ukončené dvojtečkou; popis může zůstat prázdný nebo obsahovat text i čísla.
+- Chybějící dvojtečka za projektem, neúplný čas a nejasný formát jsou chyby. Takové řádky se zachovají, nikoli odstraní; chybějící oddělovač se automaticky nedoplňuje.
 - Neúplný čas, neexistující projekt nebo štítek a chyba Clockify vytvoří jeden ClickUp komentář pro daný zdrojový řádek.
 
 Existující Clockify entry se považuje za hotové, pokud se shoduje začátek, konec, projekt, popis a množina štítků. Překrývající se i opakované intervaly uvedené přímo ve výkazu jsou povolené.

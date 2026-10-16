@@ -4,6 +4,10 @@ Všechny významné změny tohoto rozšíření jsou uvedeny v tomto souboru. Fo
 
 ## [Unreleased]
 
+### Opraveno
+
+- Import výkazu již neodstraňuje nejasné a chybně formátované řádky, například časové intervaly SENTINEL I bez dvojtečky za názvem projektu. Odstranění je omezeno na jednoznačně prázdné šablony s `...` nebo `…`; ostatní neplatné řádky zůstávají zachované s chybovou zprávou.
+
 ### Přidáno
 
 - Import strukturovaných výkazů z ClickUp Markdownu do aktivního Clockify workspace.

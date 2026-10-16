@@ -2,7 +2,7 @@
   "name": "clickup-task-workspace",
   "displayName": "ClickUp Task Workspace",
   "description": "Stahování ClickUp úkolů do lokální pracovní složky a import strukturovaných výkazů do Clockify.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "icon": "images/icon.png",
   "publisher": "stepansukovyc",
   "author": "Mgr. Stepan Sukovyc",

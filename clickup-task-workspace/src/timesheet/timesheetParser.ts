@@ -27,6 +27,7 @@ interface LocalTime {
 
 const TIME_VALUE = '(?:\\d{1,2}:\\d{1,2}|\\d{1,4})';
 const TIME_PAIR = new RegExp(`^(${TIME_VALUE})\\s*-\\s*(${TIME_VALUE})`);
+const EMPTY_TEMPLATE = /^(?:\.{3}|…)\s+([^\d:]+):/u;
 const TASK_DATE = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
 
 export function parseTimesheet(taskName: string, content: string, timeZone = 'Europe/Prague'): ParsedTimesheet {
@@ -68,8 +69,16 @@ function parseLine(
     return invalid(lineIndex, sourceLine, 'Název projektu nesmí být prázdný.');
   }
 
-  if (!timeAndTags || !startsWithTime(timeAndTags)) {
-    return { kind: 'removable' };
+  if (!startsWithTime(timeAndTags)) {
+    const template = EMPTY_TEMPLATE.exec(timeAndTags);
+    if (template?.[1]?.split(',').every((tag) => tag.trim()) && !/\d\s*-\s*\d/.test(projectName)) {
+      return { kind: 'removable' };
+    }
+    return invalid(
+      lineIndex,
+      sourceLine,
+      'Nelze rozpoznat časovou sekci. Ověřte dvojtečku za názvem projektu. Očekávaný formát: Projekt: začátek - konec štítky: popis.',
+    );
   }
 
   const pairs = parseTimePairs(timeAndTags);
