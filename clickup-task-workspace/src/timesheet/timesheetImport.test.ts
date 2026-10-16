@@ -49,6 +49,31 @@ describe('planTimesheetImport', () => {
     expect(result.invalidLines[0]?.lineIndex).toBe(0);
     expect(result.invalidLines[0]?.message).toContain('management');
   });
+
+  it('rozliší chybějící projekt a uvede počet načtených projektů', () => {
+    const result = planTimesheetImport(
+      parsedTimesheet,
+      [{ id: 'other-1', name: 'Jiný projekt' }, { id: 'other-2', name: 'Další projekt' }],
+      [{ id: 'tag-1', name: 'management' }],
+      [],
+    );
+
+    expect(result.invalidLines[0]?.message).toContain('0 přesných shod');
+    expect(result.invalidLines[0]?.message).toContain('načteno 2 aktivních projektů');
+  });
+
+  it('u duplicitního názvu projektu uvede všechny kandidáty a jejich ID', () => {
+    const result = planTimesheetImport(
+      parsedTimesheet,
+      [{ id: 'project-1', name: 'Projekt A' }, { id: 'project-2', name: 'Projekt A' }],
+      [{ id: 'tag-1', name: 'management' }],
+      [],
+    );
+
+    expect(result.invalidLines[0]?.message).toContain('2 přesné shody');
+    expect(result.invalidLines[0]?.message).toContain('ID project-1');
+    expect(result.invalidLines[0]?.message).toContain('ID project-2');
+  });
 });
 
 describe('removeTimesheetLines', () => {

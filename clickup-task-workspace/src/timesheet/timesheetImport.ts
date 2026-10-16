@@ -31,24 +31,34 @@ export function planTimesheetImport(
   const resolvedEntries: ResolvedClockifyEntry[] = [];
 
   for (const entry of parsedTimesheet.entries) {
-    const project = getSingleEntity(projectIndex, entry.projectName);
-    if (!project) {
-      invalidLines.set(entry.lineIndex, invalidEntry(entry, `Projekt „${entry.projectName}“ v Clockify neexistuje nebo není jednoznačný.`));
+    const projectMatches = getEntityMatches(projectIndex, entry.projectName);
+    const project = projectMatches[0];
+    if (projectMatches.length !== 1 || !project) {
+      invalidLines.set(entry.lineIndex, invalidEntry(
+        entry,
+        describeEntityMatches('Projekt', entry.projectName, projectMatches, projects.length, 'aktivních projektů'),
+      ));
       continue;
     }
 
     const tagIds: string[] = [];
     let invalidTag: string | undefined;
     for (const tagName of entry.tagNames) {
-      const tag = getSingleEntity(tagIndex, tagName);
-      if (!tag) {
+      const tagMatches = getEntityMatches(tagIndex, tagName);
+      if (tagMatches.length !== 1) {
         invalidTag = tagName;
+        invalidLines.set(entry.lineIndex, invalidEntry(
+          entry,
+          describeEntityMatches('Štítek', tagName, tagMatches, tags.length, 'aktivních štítků'),
+        ));
         break;
       }
-      tagIds.push(tag.id);
+      const tag = tagMatches[0];
+      if (tag) {
+        tagIds.push(tag.id);
+      }
     }
-    if (invalidTag) {
-      invalidLines.set(entry.lineIndex, invalidEntry(entry, `Štítek „${invalidTag}“ v Clockify neexistuje nebo není jednoznačný.`));
+    if (invalidTag !== undefined) {
       continue;
     }
 
@@ -103,9 +113,23 @@ function indexEntities(entities: ClockifyEntity[]): Map<string, ClockifyEntity[]
   return index;
 }
 
-function getSingleEntity(index: Map<string, ClockifyEntity[]>, name: string): ClockifyEntity | undefined {
-  const matches = index.get(normalizeName(name));
-  return matches?.length === 1 ? matches[0] : undefined;
+function getEntityMatches(index: Map<string, ClockifyEntity[]>, name: string): ClockifyEntity[] {
+  return index.get(normalizeName(name)) ?? [];
+}
+
+function describeEntityMatches(
+  entityType: string,
+  requestedName: string,
+  matches: ClockifyEntity[],
+  entityCount: number,
+  collectionName: string,
+): string {
+  if (matches.length === 0) {
+    return `${entityType} „${requestedName}“ nebyl nalezen (0 přesných shod; načteno ${entityCount} ${collectionName}).`;
+  }
+
+  const candidates = matches.map((entity) => `„${entity.name}“ (ID ${entity.id})`).join(', ');
+  return `${entityType} „${requestedName}“ není jednoznačný (${matches.length} přesné shody: ${candidates}).`;
 }
 
 function isExistingTimeEntry(entry: ResolvedClockifyEntry, existingTimeEntries: ClockifyTimeEntry[]): boolean {

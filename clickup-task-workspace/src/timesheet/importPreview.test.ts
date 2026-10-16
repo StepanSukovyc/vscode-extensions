@@ -29,4 +29,16 @@ describe('formatImportPreview', () => {
     expect(preview).toContain('a další 1 chyb.');
     expect(preview).not.toContain('Řádek 6');
   });
+
+  it('zobrazí název a ID workspace i počet načtených projektů', () => {
+    const preview = formatImportPreview(0, 0, 0, [], {
+      id: 'workspace-1',
+      name: 'GORDIC spol. s r.o.',
+      projectCount: 12,
+    });
+
+    expect(preview).toContain('GORDIC spol. s r.o.');
+    expect(preview).toContain('ID workspace-1');
+    expect(preview).toContain('načteno 12 aktivních projektů');
+  });
 });

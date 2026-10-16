@@ -6,6 +6,7 @@ const CLOCKIFY_TOKEN_SECRET_KEY = 'clickupTaskWorkspace.clockifyApiToken';
 
 export interface ExtensionSettings {
   clockifyApiBaseUrl: string;
+  clockifyWorkspaceId: string;
   largeAttachmentWarningBytes: number;
   tasksFolder: string;
   workspaceId: string;
@@ -17,6 +18,7 @@ export function getSettings(): ExtensionSettings {
   const tasksFolder = configuration.get<string>('tasksFolder', 'tasks').trim();
   const warningMb = configuration.get<number>('largeAttachmentWarningMb', 100);
   const clockifyApiBaseUrl = configuration.get<string>('clockifyApiBaseUrl', 'https://api.clockify.me/api/v1').trim().replace(/\/+$/, '');
+  const clockifyWorkspaceId = configuration.get<string>('clockifyWorkspaceId', '').trim();
 
   if (!/^\d+$/.test(workspaceId)) {
     throw new Error('V nastavení ClickUp Task Workspace vyplňte platné číselné Workspace ID.');
@@ -35,6 +37,7 @@ export function getSettings(): ExtensionSettings {
 
   return {
     clockifyApiBaseUrl,
+    clockifyWorkspaceId,
     largeAttachmentWarningBytes: warningMb * 1024 * 1024,
     tasksFolder,
     workspaceId,

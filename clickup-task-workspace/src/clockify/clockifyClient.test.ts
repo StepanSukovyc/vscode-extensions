@@ -14,6 +14,18 @@ describe('ClockifyClient', () => {
     expect(request?.headers).toMatchObject({ 'X-Api-Key': 'clockify-token' });
   });
 
+  it('načte dostupné Clockify workspaces včetně jejich názvů', async () => {
+    let requestedUrl = '';
+    const fetchMock: typeof fetch = (input) => {
+      requestedUrl = input instanceof Request ? input.url : input.toString();
+      return Promise.resolve(new Response(JSON.stringify([{ id: 'workspace-1', name: 'GORDIC' }]), { status: 200 }));
+    };
+    const client = new ClockifyClient('clockify-token', fetchMock);
+
+    await expect(client.getWorkspaces()).resolves.toEqual([{ id: 'workspace-1', name: 'GORDIC' }]);
+    expect(new URL(requestedUrl).pathname).toBe('/api/v1/workspaces');
+  });
+
   it('vytvoří time entry bez opakování požadavku', async () => {
     const requests: Array<{ init?: RequestInit; url: string }> = [];
     const fetchMock: typeof fetch = (input, init) => {

@@ -48,6 +48,7 @@ Nastavení otevřete přes `Preferences: Open Settings` a vyhledejte `ClickUp Ta
 | `clickupTaskWorkspace.tasksFolder` | `tasks` | Relativní cesta vůči workspace aktivního souboru nebo absolutní cesta. |
 | `clickupTaskWorkspace.largeAttachmentWarningMb` | `100` | Velikost, od které se zobrazí varování. Nejde o pevný limit. |
 | `clickupTaskWorkspace.clockifyApiBaseUrl` | `https://api.clockify.me/api/v1` | Základní HTTPS URL Clockify API v1; pro regionální Clockify server ji lze změnit. |
+| `clickupTaskWorkspace.clockifyWorkspaceId` | prázdná | Volitelné ID cílového Clockify workspace. Pokud není vyplněno, použije se aktivní workspace Clockify API tokenu. |
 
 Tokeny se nezapisují do `settings.json`. Nastavují se příkazy pro ClickUp a Clockify API token a ukládají se přes VS Code SecretStorage.
 
@@ -109,10 +110,10 @@ Clockify token se používá pouze pro Clockify API. Zápisy do Clockify se auto
 ## Import výkazu do Clockify
 
 1. Nastavte oba API tokeny a `clickupTaskWorkspace.workspaceId`.
-2. V Clockify vyberte cílový workspace jako aktivní.
+2. Volitelně nastavte `clickupTaskWorkspace.clockifyWorkspaceId` na ID cílového Clockify workspace. Pokud nastavení ponecháte prázdné, použije se aktivní workspace účtu Clockify API tokenu.
 3. Vytvořte úkol, jehož název je přesně datum ve tvaru `D/M/YYYY`, například `12/9/2025`.
 4. Do Markdown popisu vložte výkaz a spusťte příkaz `Importovat výkaz do Clockify`.
-5. Zkontrolujte náhled a potvrďte import.
+5. Zkontrolujte náhled včetně názvu a ID workspace, ve kterém rozšíření hledalo projekty, a potvrďte import.
 
 Každý výkazový řádek má tvar:
 

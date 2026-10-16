@@ -66,24 +66,31 @@ export async function importTimesheetCommand(context: vscode.ExtensionContext): 
 
           progress.report({ message: 'Načítám Clockify workspace...' });
           const currentUser = await clockifyClient.getCurrentUser(abortController.signal);
-          if (!currentUser.activeWorkspace) {
+          const workspaceId = settings.clockifyWorkspaceId || currentUser.activeWorkspace;
+          if (!workspaceId) {
             throw new Error('Clockify účet nemá nastavený aktivní workspace.');
           }
-          const workspaceId = currentUser.activeWorkspace;
 
-          progress.report({ message: 'Načítám Clockify projekty a štítky...' });
-          const [projects, tags] = await Promise.all([
+          progress.report({ message: 'Načítám Clockify workspace, projekty a štítky...' });
+          const [workspaces, projects, tags] = await Promise.all([
+            clockifyClient.getWorkspaces(abortController.signal),
             clockifyClient.getProjects(workspaceId, abortController.signal),
             clockifyClient.getTags(workspaceId, abortController.signal),
           ]);
           const existingEntries = await loadExistingEntries(clockifyClient, workspaceId, currentUser.id, parsedTimesheet.entries, abortController.signal);
           const importPlan = planTimesheetImport(parsedTimesheet, projects, tags, existingEntries);
+          const workspace = {
+            id: workspaceId,
+            name: workspaces.find((candidate) => candidate.id === workspaceId)?.name,
+            projectCount: projects.length,
+          };
 
           if (!await confirmImport(
             importPlan.newEntries.length,
             importPlan.existingEntries.length,
             importPlan.removableLineIndexes.length,
             importPlan.invalidLines,
+            workspace,
           )) {
             return undefined;
           }
@@ -191,9 +198,10 @@ async function confirmImport(
   existing: number,
   removed: number,
   invalidLines: Array<{ lineIndex: number; message: string; sourceLine: string }>,
+  workspace: { id: string; name?: string; projectCount: number },
 ): Promise<boolean> {
   const choice = await vscode.window.showWarningMessage(
-    formatImportPreview(created, existing, removed, invalidLines),
+    formatImportPreview(created, existing, removed, invalidLines, workspace),
     { modal: true },
     'Importovat',
   );

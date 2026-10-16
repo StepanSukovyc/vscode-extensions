@@ -2,7 +2,7 @@
   "name": "clickup-task-workspace",
   "displayName": "ClickUp Task Workspace",
   "description": "Stahování ClickUp úkolů do lokální pracovní složky a import strukturovaných výkazů do Clockify.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "icon": "images/icon.png",
   "publisher": "stepansukovyc",
   "author": "Mgr. Stepan Sukovyc",
@@ -79,6 +79,11 @@
           "type": "string",
           "default": "https://api.clockify.me/api/v1",
           "markdownDescription": "Základní HTTPS URL Clockify API v1. Změňte pouze při použití regionálního Clockify serveru."
+        },
+        "clickupTaskWorkspace.clockifyWorkspaceId": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Volitelné ID Clockify workspace pro import výkazů. Pokud není vyplněno, použije se aktivní workspace účtu Clockify API tokenu."
         }
       }
     }

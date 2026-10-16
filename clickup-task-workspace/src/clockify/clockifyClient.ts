@@ -25,6 +25,10 @@ export class ClockifyClient {
     return await this.requestJson<ClockifyUser>('/user', signal);
   }
 
+  public async getWorkspaces(signal?: AbortSignal): Promise<ClockifyEntity[]> {
+    return await this.requestJson<ClockifyEntity[]>('/workspaces', signal);
+  }
+
   public async getProjects(workspaceId: string, signal?: AbortSignal): Promise<ClockifyEntity[]> {
     return await this.getPagedEntities(`/workspaces/${encodeURIComponent(workspaceId)}/projects`, signal);
   }
