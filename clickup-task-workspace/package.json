@@ -100,7 +100,7 @@
     "package": "pnpm run check && vsce package --no-dependencies --allow-missing-repository --out versions/clickup-task-workspace.vsix"
   },
   "dependencies": {
-    "mdast-util-from-markdown": "^2.0.2",
+    "mdast-util-from-markdown": "^2.1.0",
     "mdast-util-to-markdown": "^2.1.2",
     "unist-util-visit": "^5.0.0"
   },
