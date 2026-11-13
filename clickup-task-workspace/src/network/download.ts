@@ -4,6 +4,13 @@ import { assertSafePublicUrl } from './safeUrl.js';
 
 const MAX_REDIRECTS = 5;
 
+export class UnsupportedImageContentTypeError extends Error {
+  constructor(readonly contentType: string) {
+    super(`Externí obrázek vrátil nepodporovaný Content-Type ${contentType}.`);
+    this.name = 'UnsupportedImageContentTypeError';
+  }
+}
+
 export interface DownloadProgress {
   bytesDownloaded: number;
   contentLength?: number;
@@ -47,7 +54,7 @@ export async function downloadToFile(
 
     const contentType = response.headers.get('content-type')?.toLowerCase();
     if (options.expectedImage && contentType && !contentType.startsWith('image/')) {
-      throw new Error(`Externí obrázek vrátil nepodporovaný Content-Type ${contentType}.`);
+      throw new UnsupportedImageContentTypeError(contentType);
     }
 
     const parsedLength = Number(response.headers.get('content-length'));

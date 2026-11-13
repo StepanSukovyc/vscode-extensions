@@ -3,7 +3,7 @@ import path from 'node:path';
 import type { ClickUpAttachment, ClickUpComment, ClickUpTaskDetail } from '../clickup/types.js';
 import { buildAttachmentPlan } from '../domain/attachmentPlan.js';
 import { buildTaskMarkdown, collectExternalImageUrls, rewriteImageUrls } from '../domain/taskMarkdown.js';
-import { downloadToFile, type DownloadProgress } from '../network/download.js';
+import { downloadToFile, type DownloadProgress, UnsupportedImageContentTypeError } from '../network/download.js';
 
 const MANIFEST_FILE = '.clickup-task-workspace.json';
 const RELATIONSHIPS_FILE = 'clickup-task-relations.json';
@@ -32,6 +32,7 @@ export interface TaskFileSyncOptions {
 export interface TaskFileSyncResult {
   downloadedFiles: string[];
   popisPath: string;
+  skippedExternalImages: { contentType: string }[];
 }
 
 interface TaskRelationshipsExport {
@@ -75,21 +76,31 @@ export async function syncTaskFiles(options: TaskFileSyncOptions): Promise<TaskF
   );
   const stagingFolder = await mkdtemp(path.join(options.targetFolder, '.clickup-task-workspace-'));
   const downloadFile = options.downloadFile ?? downloadToFile;
+  const downloadedFiles: string[] = [];
+  const skippedExternalImages: TaskFileSyncResult['skippedExternalImages'] = [];
 
   try {
     for (const item of plan.downloads) {
-      await downloadFile({
-        destination: path.join(stagingFolder, item.fileName),
-        expectedImage: item.kind === 'external-image',
-        onHeaders: async (contentLength) => await options.onDownloadHeaders?.(item.fileName, contentLength),
-        onProgress: (progress) => options.onDownloadProgress?.(item.fileName, progress),
-        signal: options.signal,
-        url: item.url,
-      });
+      try {
+        await downloadFile({
+          destination: path.join(stagingFolder, item.fileName),
+          expectedImage: item.kind === 'external-image',
+          onHeaders: async (contentLength) => await options.onDownloadHeaders?.(item.fileName, contentLength),
+          onProgress: (progress) => options.onDownloadProgress?.(item.fileName, progress),
+          signal: options.signal,
+          url: item.url,
+        });
+        downloadedFiles.push(item.fileName);
+      } catch (error) {
+        if (item.kind !== 'external-image' || !(error instanceof UnsupportedImageContentTypeError)) {
+          throw error;
+        }
+        delete plan.sourceToFile[item.url];
+        skippedExternalImages.push({ contentType: error.contentType });
+      }
     }
 
     const rewrittenDescription = rewriteImageUrls(sourceDescription, plan.sourceToFile);
-    const downloadedFiles = plan.downloads.map((item) => item.fileName);
     const markdown = buildTaskMarkdown(
       options.task,
       comments,
@@ -116,7 +127,7 @@ export async function syncTaskFiles(options: TaskFileSyncOptions): Promise<TaskF
 
     const commitOrder = [...downloadedFiles, ...GENERATED_FILES];
     await commitStagedFiles(stagingFolder, options.targetFolder, commitOrder);
-    return { downloadedFiles, popisPath: path.join(options.targetFolder, 'popis.md') };
+    return { downloadedFiles, popisPath: path.join(options.targetFolder, 'popis.md'), skippedExternalImages };
   } finally {
     await rm(stagingFolder, { force: true, recursive: true });
   }

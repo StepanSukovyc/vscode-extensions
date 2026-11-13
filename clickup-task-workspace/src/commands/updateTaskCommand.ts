@@ -109,9 +109,17 @@ export async function updateTaskCommand(context: vscode.ExtensionContext): Promi
 
     const document = await vscode.workspace.openTextDocument(result.popisPath);
     await vscode.window.showTextDocument(document, { preview: false });
-    void vscode.window.showInformationMessage(
-      `ClickUp úkol byl aktualizován. Staženo souborů: ${result.downloadedFiles.length}.`,
-    );
+    if (result.skippedExternalImages.length > 0) {
+      const count = result.skippedExternalImages.length;
+      const contentTypes = [...new Set(result.skippedExternalImages.map(({ contentType }) => contentType))].join(', ');
+      void vscode.window.showWarningMessage(
+        `ClickUp úkol byl aktualizován, ale ${count} externí ${count === 1 ? 'obrázek nebyl' : 'obrázky nebyly'} stažen${count === 1 ? '' : 'y'} (Content-Type: ${contentTypes}). Původní odkazy zůstaly v popisu.`,
+      );
+    } else {
+      void vscode.window.showInformationMessage(
+        `ClickUp úkol byl aktualizován. Staženo souborů: ${result.downloadedFiles.length}.`,
+      );
+    }
   } catch (error) {
     if (isCancellation(error)) {
       void vscode.window.showInformationMessage('Aktualizace ClickUp úkolu byla zrušena.');

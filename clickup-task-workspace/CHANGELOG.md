@@ -6,6 +6,7 @@ Všechny významné změny tohoto rozšíření jsou uvedeny v tomto souboru. Fo
 
 ### Opraveno
 
+- Aktualizace úkolu pokračuje, pokud externí obrázek vrátí nepodporovaný typ obsahu; původní odkaz zůstane v Markdownu a uživatel dostane upozornění.
 - Import výkazu již neodstraňuje nejasné a chybně formátované řádky, například časové intervaly SENTINEL I bez dvojtečky za názvem projektu. Odstranění je omezeno na jednoznačně prázdné šablony s `...` nebo `…`; ostatní neplatné řádky zůstávají zachované s chybovou zprávou.
 
 ### Přidáno

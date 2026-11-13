@@ -2,7 +2,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import type { DownloadOptions } from '../network/download.js';
+import { UnsupportedImageContentTypeError, type DownloadOptions } from '../network/download.js';
 import { syncTaskFiles } from './taskFileSync.js';
 
 const temporaryFolders: string[] = [];
@@ -82,6 +82,28 @@ describe('syncTaskFiles', () => {
     expect(await readFile(path.join(targetFolder, 'image_1.png'), 'utf8')).toBe('https://example.com/reply.png');
     expect(await readFile(result.popisPath, 'utf8')).toContain('![image.png](./image.png)');
     expect(await readFile(result.popisPath, 'utf8')).toContain('![image.png](./image_1.png)');
+  });
+
+  it('při HTML odpovědi externího obrázku pokračuje a ponechá původní odkaz', async () => {
+    const targetFolder = await mkdtemp(path.join(os.tmpdir(), 'clickup-task-workspace-test-'));
+    temporaryFolders.push(targetFolder);
+
+    const result = await syncTaskFiles({
+      comments: [],
+      downloadFile: () => Promise.reject(new UnsupportedImageContentTypeError('text/html; charset=utf-8')),
+      targetFolder,
+      task: {
+        id: 'task-1',
+        markdown_description: '![diagram](https://example.com/diagram.png)',
+        name: 'Testovací úkol',
+      },
+      workspaceId: '2422460',
+    });
+
+    const markdown = await readFile(result.popisPath, 'utf8');
+    expect(result.downloadedFiles).toEqual([]);
+    expect(result.skippedExternalImages).toEqual([{ contentType: 'text/html; charset=utf-8' }]);
+    expect(markdown).toContain('![diagram](https://example.com/diagram.png)');
   });
 
   it('zachová pořadí obrázků z rich textu vnořené odpovědi', async () => {

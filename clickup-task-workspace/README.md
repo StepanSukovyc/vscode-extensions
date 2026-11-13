@@ -9,7 +9,7 @@ Samostatné rozšíření pro Visual Studio Code, které stáhne aktuální stav
 - načítá Markdown popis, metadata, komentáře a přílohy;
 - zvýrazní nadřazený task, podřízené tasky a dostupné identifikátory závislostí;
 - stahuje všechny ClickUp přílohy;
-- stahuje veřejné externí obrázky vložené v popisu;
+- stahuje veřejné externí obrázky vložené v popisu; pokud URL vrátí jiný typ obsahu než obrázek, ponechá původní odkaz a upozorní na přeskočený obrázek;
 - přepisuje odkazy obrázků na lokální relativní cesty;
 - před aktualizací existujícího `popis.md` vždy vyžádá potvrzení;
 - ponechává lokální přílohy, které už byly z ClickUpu odstraněny;
